@@ -1,4 +1,4 @@
-## R2 - Update weekly
+## R9 - EOC Map Update weekly
 ## Global Polio Map - need to check output and reference 
 ## Updated - 13-02-2025 
 ## By: JPB 
@@ -6,14 +6,12 @@
 # Load Packages 
 source("./reference/obx_packages_01.R", local = T)
 
-
 # Load Data 
 if (exists("raw.data") == TRUE){
   cli::cli_alert("Core data already loaded")
 }else{
   raw.data <- get_all_polio_data(size = "small")
 }
-
 
 # Load Inputs 
 # Dates (last 12 months)
@@ -30,17 +28,11 @@ s1 <- c("AFP", "ENV")
 endem_ctry <- c("AFGHANISTAN", "PAKISTAN")
 
 # Output 
-datt_task_id <- "R2"
-
+datt_task_id <- "R9"
 sub_folder <- "3. Figures"
-
 fig_name <- paste("map_pvdetect_12m_",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
-
 temp_path <- file.path(tempdir(), fig_name)
-
 sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
-
-
 
 # Do you want to upload to sharepoint 
 uploadtosp <- "yes"
@@ -54,9 +46,6 @@ get_sharepoint_site(
   scopes = c("Group.ReadWrite.All", "Directory.Read.All", "Sites.ReadWrite.All",
              "Sites.Manage.All"),
   token = NULL)
-
-
-
 
 
 # Get dataset 
@@ -159,9 +148,71 @@ g1 <- ggplot() +
        title = paste0("Overview of global WPV1 and cVDPV detections at ", as.character(year(date_end)),"-",e_w," previous 12 months*", sub=" ")) 
   
 
-# Check graph
+# # Test print -> check what rolw is missing from the scale 
 print(g1)
 
+
+
+# Quick count Table
+
+tab1a <- pos1 %>%
+          arrange(measurement, dateonset) %>%
+          group_by(measurement) %>%
+          summarise(most_recent = last(dateonset)) %>%
+          mutate(measurement = factor(measurement, levels = c("WILD 1", "cVDPV 1", "cVDPV 2", "cVDPV 3"))) %>%
+          arrange(measurement, desc(most_recent)) %>%
+          mutate(most_recent = format(most_recent, "%d %b %y"))
+
+
+tab1b <- pos1 %>%
+  group_by(measurement, source) %>%
+  summarise(count = n()) %>%
+  pivot_wider(values_from = count, names_from = source, values_fill = 0)
+
+
+t_all <- left_join(tab1a, tab1b, by = c("measurement")) %>%
+            mutate(m2 = case_when(
+              measurement == "WILD 1" ~ "WPV1",
+              measurement == "cVDPV 1" ~ "cVDPV1",
+              measurement == "cVDPV 2" ~ "cVDPV2",
+              measurement == "cVDPV 3" ~ "cVDPV3")) %>%
+            select(m2, AFP, ENV, most_recent) %>%
+            rename(
+              "Cases" = AFP,
+              "ES" = ENV,
+              "Most\nRecent" = most_recent)
+
+
+
+# Create Table
+# Flextable Defaults
+set_flextable_defaults(
+  font.size = 18,
+  text.align = "center",
+  valign = "center",
+  padding = 8,
+  layout = "autofit")
+
+t_flex <- t_all %>%
+  flextable() %>%
+  align(align = "center", j = 2:4, part = "body") %>%
+  width(., j = 4, width = 1.5) %>%
+  bold(part = "header") %>%
+  bold(part = "body", j=1) %>%
+  set_header_labels(m2 = " ") %>%
+  add_header_lines(., values = "Summary of recent detections,\n by virus type") %>%
+  align(align = "center", part = "header")  %>%
+  hline_top(border = fp_border_default(width = 0),
+            part = "header")
+
+
+# print(t_flex)
+
+t_raster <- t_flex %>% gen_grob(fit = "fixed", just="centre")
+
+p1 <- plot_grid(t_raster, g1, nrow = 1, ncol = 2, align = "h", rel_widths  = c(0.25, 0.75))
+
+print(p1)
 
 
 # Save Locally
