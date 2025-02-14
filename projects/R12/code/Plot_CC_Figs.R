@@ -56,14 +56,19 @@ plot_countries <- unique(data$country_abbrev[data$gid_critical_countries == "Yes
 plot_years <- c(2018,2019,2020,2021,2022,2023)
 year_range <- paste0(min(plot_years),"-",max(plot_years))
 plot_vpds_priority <- c("Measles","Rubella","Congenital rubella syndrome (CRS)", "Poliomyelitis")
-plot_vpds_ia2030outbreak <- c("Measles","WPV","cVDPV","Yellow fever","Invasive meningococcal disease",
+#plot_vpds_ia2030outbreak <- c("Measles","WPV","cVDPV","Yellow fever","Invasive meningococcal disease",
+#                              "Cholera","Ebola virus disease")
+
+# Per updated request, combine cVDPV and WPV to one variable: Polio
+plot_vpds_ia2030outbreak <- c("Measles","Poliomyelitis","Yellow fever","Invasive meningococcal disease",
                               "Cholera","Ebola virus disease")
 
 # plot_variable <- "num_cases_WHOofficial"
 # plot_variable <- "lod_count"
 
 ## COLOR PALETTE INFO
-# show_col(pal_viridis()(8)) # countries for priority countries
+#show_col(pal_viridis()(8)) # colors for priority countries
+#show_col(pal_viridis()(6)) # colors for LoD VPDs ("ia2030 outbreak vpds")
 
 # change x-var, y-var, and fill var based on desired figure
 # save figure using DATT naming conventions: fig#_type_year(s)_yvar_by_xvar1_xvar2_otherinfo.png 
@@ -196,24 +201,16 @@ plot_variable <- "lod_count_atleastone"
 type <- "stackedbar"
 # no facet (not years)
 #############################################################################
-## add var so counting 1 per country per year
-## Count number of countries experiencing instead of LODs; Combine polio?
-# data %>% group_by(country,)
-# data %>% pivot_wider(id_cols="country_abbrev","year","vpd", ) %>% mutate()
-# ia2030_lod_vpds <- vpds
-# 
-# cc_lodos <- lodos %>% filter(country_name %in% cc)
-# cc_lodos$lod_count_atleastone <- 0
-# cc_lodos$lod_count_atleastone[cc_lodos$lod_count >= 1] <- 1
-# 
-# lodos$lod_count_atleastone <- 0
-# lodos$lod_count_atleastone[lodos$lod_count >= 1] <- 1
-# 
-# cc_lower <- tolower(cc)
+
+# re-order fill variable (vpd_short_name) so most prevalent VPD LODOs (measles/polio) on bottom of bars
+data$fill_var <- NA
+all_vpds_except <- setdiff(unique(data$vpd_short_name), c("Measles","Polio"))
+data$fill_var <- factor(data$vpd_short_name, levels=rev(c('Measles', 'Polio', all_vpds_except)))
 
 fig4 <- data %>% 
   filter(country_abbrev %in% plot_countries & year %in% plot_years & vpd %in% plot_vpds_ia2030outbreak & variable==plot_variable) %>% 
-  ggplot(aes(x=country_abbrev, y=value, fill=vpd))+
+  #mutate(country_abbrev = factor(country_abbrev, levels = country_abbrev[order(-value)])) %>% 
+  ggplot(aes(x=country_abbrev, y=value, fill=fill_var))+
   geom_bar(stat="identity", position="dodge")+
   geom_col()+
   #geom_text(aes(label = paste(format(round(Projection_Grand_Total/1e6, 1), trim=TRUE),"M"))) +
@@ -228,7 +225,8 @@ fig4 <- data %>%
   #scale_y_continuous(labels=unit_format(unit="M", scale=1e-6))+
   scale_y_continuous(labels = number_format(accuracy = 1)) + 
   #scale_x_discrete(labels =c(""))+
-  guides(fill=guide_legend(title="VPD"))+
+  guides(fill=guide_legend(title="Disease"))+
+  scale_fill_viridis_d(option = "D", n=6)+
   # scale_fill_manual(values=PAPcolors)+
   #guides(fill="none")+
   theme_bw()+
@@ -236,8 +234,8 @@ fig4 <- data %>%
         plot.subtitle=element_text(hjust=0.5, size=14),
         axis.text.x = element_text(angle = 45, vjust = 1, hjust=1,size=14),
         axis.text.y = element_text(size=12),
-        axis.title.y = element_text(size=18),
-        axis.title.x = element_text(vjust=0.5,size=18))
+        axis.title.y = element_text(size=12),
+        axis.title.x = element_text(vjust=0.5,size=12))
 
 fig4
 
