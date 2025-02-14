@@ -8,9 +8,6 @@
 ## Visualize VPD outbreaks/cases for GID 8 Critical Countries
 ## Note: imported data is from downloads (excel files) from data_raw folder in ADLS; need to change based on user
 
-
-# TO DO: For polio, write LoD count to combine WPV + cVDPV value for the same country/year
-
 #######################################################################
 ## R SETUP
 #######################################################################
@@ -75,11 +72,7 @@ teams_fig_files <- teams_fig_folder$list_files()
 # Use SIR function to access EDAV "/ddphsis-cgh/GID/GIDMEA/giddatt" blob container
 
 # list files in raw_data folder
-sirfunctions::edav_io(io = "list", default_dir = "GID/GIDMEA/giddatt/data_raw")
-
-# read raw data
-#data <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
-#                              file_loc = "data_clean/traveler_outbound.rds")
+#sirfunctions::edav_io(io = "list", default_dir = "GID/GIDMEA/giddatt/data_raw")
 
 #######################################################################
 ## LOAD REFERENCE DATA (from EDAV ADLS)
@@ -378,6 +371,25 @@ wide_data_ref <- wide_data_ref %>%
 
 # correct VPD
 wide_data_ref$vpd[wide_data_ref$vpd=="YellowFever"] <- "Yellow fever"
+
+## Add LOD count for combined (cVDPV + WPV) polio rows
+## where the VPD is "cVDPV" or "WPV" in the same country and year as where the VPD is ""Poliomyelitis"
+## lod_count = cVDPV lodcount + WPV lodcount
+
+disag_pol <- wide_data_ref %>%  filter(vpd %in% c('cVDPV', 'WPV')) %>%
+  group_by(year, country_name_lower) %>%
+  summarise(total_lod_count = sum(lod_count, na.rm = TRUE), .groups = 'drop')
+
+agg_pol <- wide_data_ref %>% filter(vpd == 'Poliomyelitis')
+
+updated_pol_rows <- agg_pol %>%
+  left_join(disag_pol, by = c("year", "country_name_lower")) %>%
+  mutate(lod_count = ifelse(is.na(total_lod_count), lod_count, total_lod_count)) %>%
+  select(-total_lod_count) # Remove temporary column
+
+wide_data_ref <- wide_data_ref %>%
+  filter(!(vpd == 'Poliomyelitis')) %>% # Remove old Polio rows
+  bind_rows(updated_pol_rows) # Add updated Polio rows
 
 # check numeric
 class(wide_data_ref$lod_count)
