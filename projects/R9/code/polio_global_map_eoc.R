@@ -38,7 +38,6 @@ sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/"
 uploadtosp <- "yes"
 
 ## Load Sharepoint Site & Writing Functions 
-
 get_sharepoint_site(
   site_url = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
   tenant = Sys.getenv("CLIMICROSOFT365_TENANT", "common"),
