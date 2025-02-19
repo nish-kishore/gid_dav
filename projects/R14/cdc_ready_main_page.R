@@ -5,7 +5,7 @@
 
 
 # AFRO AFP And ES Detections Last 90 Days 
-source("./special_projects/obx_unit/obx_packages_01.R", local = T)
+source("./reference/obx_packages_01.R", local = T)
 library(aweek)
 
 # Get data 
@@ -113,7 +113,7 @@ if(nrow(c1) == 0){
               place.admin.0 %in% c("AFGHANISTAN", "PAKISTAN")))) %>% 
     group_by(place.admin.0) %>% 
     count() %>% 
-    rename("New AFP Cases" = n) %>%
+    rename("New Cases" = n) %>%
     left_join(t2, ., by = "place.admin.0")
 }
 
@@ -250,7 +250,7 @@ dfs <- list("T1_PVOverall" = t1_overall_sum,
             "T4_epi_overall" = t4_epi_all, 
             "T4_epi_afp" = t4_epi_afp, 
             "T4_epi_es" = t4_epi_es)
-write_xlsx(dfs, "cdcready_polio_main_page.xlsx")
+write_xlsx(dfs, path = paste0("./output/cdcready_polio_main_page_",format(end_date, "%y%m%d"),".xlsx", sep = ""))
 
 # ggplot(t4_epi_es, aes(e_date, n, fill = m_sub2)) +
 #      geom_bar(stat = "identity") +
