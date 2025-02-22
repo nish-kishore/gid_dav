@@ -1,5 +1,5 @@
 ## Combine data files imported from WHO
-# Updated 2025-02-07
+# Updated 2025-02-21
 # Author: Lori Niehaus
 
 #######################################################################
@@ -75,23 +75,10 @@ teams_fig_files <- teams_fig_folder$list_files()
 #sirfunctions::edav_io(io = "list", default_dir = "GID/GIDMEA/giddatt/data_raw")
 
 #######################################################################
-## LOAD REFERENCE DATA (from EDAV ADLS)
+## UPLOAD & RESAVE REFERENCE DATA (from EDAV ADLS)
 #######################################################################
-## FUNCTION ONLY WORKS WITH CSV RDS AND RDA FILES
-# # all ref data
-# gid_ref_xls <- sirfunctions::edav_io(io = "list", default_dir = "GID/GIDMEA/giddatt/data_raw") %>% 
-#   filter(grepl("GID_M&E_Data_Dictionary",name))
-# 
-# # most recent ref data
-# gid_ref_xls$date <- as.Date(sub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1", gid_ref_xls$name))
-# gid_ref_xls <- gid_ref_xls %>% filter(date == max(date))
-# fi_name <- strsplit(gid_ref_xls$name, "/")[[1]][5]
-# 
-# # read ref data
-# gid_ref_data <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt/data_raw", 
-#                               file_loc = fi_name)
 
-gid_ref_xls <- "C:/Users/tvf1/OneDrive - CDC/07_Projects/0. DATT/2025-02-10_GID_M&E_Data_Dictionary.xlsx"
+gid_ref_xls <- "C:/Users/tvf1/OneDrive - CDC/07_Projects/0. DATT/2025-02-21_GID_M&E_Data_Dictionary.xlsx"
 
 # Merge with geo and vpd reference data
 vpd_ref <- read_xlsx(gid_ref_xls,
@@ -100,6 +87,15 @@ country_ref <- read_xlsx(gid_ref_xls,
                          sheet = "Country Key") %>% clean_names() %>% as.data.frame()
 
 country_ref$country_name_lower <- tolower(country_ref$country_name)
+
+# write reference data to processing folder
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                                   file_loc = "data_processing/country_ref.rds",
+                                   obj = country_ref)
+
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/vpd_ref.rds",
+                      obj = vpd_ref)
 
 #######################################################################
 ## UPLOAD & CLEAN PUBLIC WHO DATA SETS OF VPD CASES 1980-2003
@@ -157,6 +153,10 @@ vpd_cases <- vpd_cases %>% select(-"num_cases_WHOofficial") %>%
 vpd_cases$country_name_lower <- tolower(vpd_cases$country_name)
 sort(setdiff(unique(vpd_cases$country_name_lower),unique(country_ref$country_name_lower)))
 # 0 - perfect match (makes sense because both WHO ref data from WIISEmart)
+
+# Write data to processing folder
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/country_vpd_year_casedata.rds", obj = vpd_cases)
 
 ############################################################################
 ## UPLOAD & CLEAN PUBLIC IA2030 LARGE OR DISRUPTIVE OUTBREAK DATA (2018-2023)
@@ -250,7 +250,7 @@ for (vpd in vpds_2023) {
   df_2023 <- rbind(df_2023, outbreaks_2023) # bind each VPD data set together
 }
 
-## PART 3. mERGE HISTORIC AND MOST RECENT DATA
+## PART 3. MERGE HISTORIC AND MOST RECENT DATA
 
 # use same VPD labels and keep 2023 measles incidence vals for future ref
 df_complete$incidence <- NA
@@ -307,31 +307,252 @@ lodos <- df_complete %>% filter(!is.na(country_name_lower))
 
 lodos$data_source <- "ia2030_2024_lodos_reporting"
 
+# Write data to processing folder
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/country_vpd_year_lododata.rds", obj = lodos)
+
+
+#######################################################################
+## ADD ADDITIONAL ANTIGENS & YEARS (MPOX, C19, Cholera, MEASLES2024, POLIO2024)
+
+vpd_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                                   file_loc = "data_processing/country_vpd_year_casedata.rds")
+
+## query list of missing by VPD
+# summary <- vpd_cases %>% filter(year==2023 & vpd=="Congenital rubella syndrome")%>%
+#   group_by(vpd, country_name_lower) %>%
+#   summarize(num_cases_WHOofficial)
+#summary$country_name_lower[is.na(summary$num_cases_WHOofficial)]
+
+## Clean each data set to have columns: iso3 year vpd variable value to prepare to merge with vpd_cases (long)
+
+#############################################################################
+## MPOX
+#############################################################################
+
+mpox_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                                   file_loc = "data_raw/mpox-cumulative-confirmed-and-suspected-cases-WHO-Ourworldindata.csv")
+# Source: https://ourworldindata.org/explorers/monkeypox?Metric=Confirmed+and+suspected+cases&Frequency=7-day+average&Relative+to+population=false&country=COD~BDI~UGA~CAF
+# as of Nov 2024, suspected cases no longer being reported
+mpox_cases$country_name_lower <- tolower(mpox_cases$Country)
+sort(setdiff(unique(mpox_cases$country_name_lower),unique(country_ref$country_name_lower)))
+
+# change country vals
+mpox_cases <- mpox_cases %>% mutate(country_name_lower = case_when(
+  country_name_lower == "cote d'ivoire" ~ "côte d'ivoire",
+  country_name_lower == "curacao" ~ "curaçao",
+  country_name_lower == "democratic republic of congo" ~ "democratic republic of the congo",
+  country_name_lower == "iran" ~ "iran (islamic republic of)",
+  country_name_lower == "laos" ~ "lao people's democratic republic",
+  country_name_lower == "moldova" ~ "republic of moldova",
+  country_name_lower == "netherlands" ~ "netherlands (kingdom of the)",
+  country_name_lower == "russia" ~ "russian federation",
+  country_name_lower == "south korea" ~ "republic of korea",
+  country_name_lower == "turkey" ~ "türkiye",
+  country_name_lower == "united kingdom" ~ "united kingdom of great britain and northern ireland",
+  country_name_lower == "united states" ~ "united states of america",
+  country_name_lower == "venezuela" ~ "venezuela (bolivarian republic of)",
+  country_name_lower == "vietnam" ~ "viet nam",
+  T ~ country_name_lower
+))
+
+# filter out regional and global aggregates
+mpox_cases_ctry <- mpox_cases %>% filter(
+  !(mpox_cases$country_name_lower %in% sort(setdiff(unique(mpox_cases$country_name_lower),unique(country_ref$country_name_lower))))
+)
+
+# add ISO3 code
+mpox_cases_ctry <- mpox_cases_ctry %>% left_join(
+  country_ref %>% select(iso3_code, country_name_lower),
+  by = "country_name_lower"
+)
+
+# reformat as date var & combine by year
+mpox_cases_ctry$year <- mpox_cases_ctry$Day %>% as.Date(format = "%m/%d/%Y") %>% year()
+mpox_cases_ctry_yr <- mpox_cases_ctry %>% group_by(iso3_code, year) %>% 
+  summarize(confirmed_cases = sum(`Total confirmed cases`, na.rm=TRUE),
+            suspected_cases = sum(`Total suspected cases`, na.rm=TRUE), # data discont Nov 2024
+            .groups = 'drop'
+            )
+
+mpox_cases_ctry_yr <- mpox_cases_ctry_yr %>% mutate(vpd="Mpox") %>% 
+  pivot_longer(c("confirmed_cases", "suspected_cases"),
+               names_to = "variable", values_to = "value")
+  
+mpox_df <- mpox_cases_ctry_yr[ , order(names(mpox_cases_ctry_yr))]
+
+# save to processing folder
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/mpox-cntry-year-cases.rds",
+                      obj=mpox_df)
+
+#############################################################################
+## CHOLERA
+#############################################################################
+cholera_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                                       file_loc = "data_raw/cholera-number-reported-cases.csv")
+
+cholera_cases$country_name_lower <- tolower(cholera_cases$Entity)
+#sort(setdiff(unique(cholera_cases$country_name_lower),unique(country_ref$country_name_lower)))
+#sort(setdiff(unique(cholera_cases$Code),unique(country_ref$iso3_code))) # OWID_WRL
+
+#unique(cholera_cases$Entity[cholera_cases$Code == "OWID_WRL"]) # World
+#unique(cholera_cases$Entity[is.na(cholera_cases$Code)]) # Regions + Serbia and Montenegro (former)"
+
+# correct geo code and filter out values that are not counties 
+cholera_cases$Code[cholera_cases$Entity=="Serbia and Montenegro (former)"] <- "SCG"
+cholera_cases_ctry_yr <- cholera_cases %>% filter(!(is.na(Code)) & Code != "OWID_WRL")
+
+# prepare to merge
+cholera_cases_ctry_yr <- cholera_cases_ctry_yr %>%
+  rename(iso3_code = Code, year=Year, value = `Reported cholera cases`) %>% 
+  mutate(vpd="Cholera", variable="cases") %>%
+  select(-c("Entity","country_name_lower"))
+
+cholera_df <- cholera_cases_ctry_yr[ , order(names(cholera_cases_ctry_yr))]
+
+# save to processing folder
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/cholera-cntry-year-cases.rds",
+                      obj=cholera_df)
+
+#############################################################################
+## COVID-19
+#############################################################################
+c19_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                                   file_loc = "data_raw/COVID-19-global-data-cases-and-deaths_WHO.csv")
+
+#c19_cases[is.na(c19_cases$Country_code),]$Country %>% unique() # Namibia missing code (imported NA as missing)
+c19_cases$Country_code[c19_cases$Country=="Namibia"] <- "NA"
+
+#sort(setdiff(unique(c19_cases$Country_code),unique(country_ref$iso2))) # some unmatched to ref
+
+# Unmatched geographies - international commercial vessel and conveyence - DROP
+unmatched <- c19_cases[c19_cases$Country_code %in% setdiff(unique(c19_cases$Country_code),unique(country_ref$iso2)),]$Country %>% unique()
+c19_cases <- c19_cases %>% filter(!Country %in% unmatched)
+
+## check before joining
+#country_ref$iso2 %>% duplicated %>% sum() # ok - NA for non-countries
+#country_ref[duplicated(country_ref$iso2),] %>% View()
+#is.na(c19_cases$iso2) %>% sum() # 0 - no missing vals
+
+# add ISO3 code
+c19_cases <- c19_cases %>% rename(iso2=Country_code) %>% left_join(
+  country_ref %>% select(iso3_code, iso2),
+  by = "iso2"
+)
+
+# reformat as date var & combine by year
+c19_cases$year <- c19_cases$Date_reported %>% as.Date(format = "%m/%d/%Y") %>% year()
+c19_cases_ctry_yr <- c19_cases %>% group_by(iso3_code, year) %>% 
+  summarize(cases = sum(New_cases, na.rm=TRUE),
+            cases_cum = sum(Cumulative_cases, na.rm=TRUE),
+            deaths_new = sum(New_deaths, na.rm=TRUE),
+            deaths_cum = sum(Cumulative_deaths, na.rm=TRUE),
+            .groups = 'drop'
+  )
+
+c19_cases_ctry_yr <- c19_cases_ctry_yr %>% mutate(vpd="Coronavirus disease 2019 (COVID-19)") %>% 
+  pivot_longer(c("cases", "cases_cum", "deaths_new", "deaths_cum"),
+               names_to = "variable", values_to = "value")
+
+c19_df <- c19_cases_ctry_yr[ , order(names(c19_cases_ctry_yr))]
+
+# save to processing folder
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/covid19-cntry-year-cases.rds",
+                      obj=c19_df)
+
+#############################################################################
+## MEASLES - 2024
+#############################################################################
+
+measles_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                                    file_loc = "data_raw/Measles-cases-by-month-year-country.csv")
+
+measles_cases_ctry_2024 <- measles_cases %>% filter(Year==2024) %>% 
+  pivot_longer(cols = names(measles_cases)[5:16], names_to = "month", values_to="cases") %>% 
+  group_by(ISO3, Year) %>% summarize(cases = sum(cases, na.rm=TRUE), .groups = "drop")
+
+measles_cases_ctry_2024 <- measles_cases_ctry_2024 %>%
+  rename(iso3_code = ISO3, year=Year, value=cases) %>% 
+  mutate(vpd = "Measles", variable="cases")
+
+#sort(setdiff(unique(measles_cases_ctry_2024$iso3_code),unique(country_ref$iso3_code))) #0
+
+measles_df <- measles_cases_ctry_2024[ , order(names(measles_cases_ctry_2024))]
+
+# save to processing folder
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/measles-cntry-2024-cases.rds",
+                      obj=measles_df)
+
+#############################################################################
+## Polio - 2024
+#############################################################################
+
+# polio AFP detections in 2024 by country
+polio_2024cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                                         file_loc = "data_clean/polio.data.recent.rds")$pos |> 
+  dplyr::filter(yronset == 2024, 
+                source == "AFP", 
+                virustype != "NPEV") |> 
+  dplyr::group_by(admin0officialname) |> 
+  dplyr::summarise(afp.cases = dplyr::n())
+
+#sort(setdiff(unique(polio_2024cases$admin0officialname),unique(country_ref$country_name)))
+polio_2024cases$admin0officialname[polio_2024cases$admin0officialname == "Cote d Ivoire"] <- "Côte d'Ivoire"
+
+# add ISO3 code
+pol_cases <- polio_2024cases %>% rename(country_name=admin0officialname) %>% left_join(
+  country_ref %>% select(iso3_code, country_name),
+  by = "country_name"
+) %>% select(-country_name)
+
+pol_cases <- pol_cases %>% rename(value=afp.cases) %>% 
+  mutate(year=2024, vpd="Poliomyelitis", variable="cases") # AFP cases
+
+polio_df <- pol_cases[ , order(names(pol_cases))]
+
+# save to processing folder
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/polio-cntry-2024-cases.rds",
+                      obj=polio_df)
+
 #######################################################################
 ## MERGE DATA SETS & SAVE AS CLEAN DATA SET
 ## 1. IA2030 large or disruptive outbreak counts: lodos
 ## 2. WHO VPD case counts: vpd_cases
 ## 3. GID country reference data: country_ref
-## 4. GID reference data: vpd_ref
+## 4. GID vpd reference data: vpd_ref
 #######################################################################
 
-names(lodos)
-names(vpd_cases)
-names(country_ref)
-names(vpd_ref)
+# Read data from processing folder
+lodos <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/country_vpd_year_lododata.rds")
 
-# ensure matching primary/foreign keys: country_name_lower and vpd
-sort(setdiff(unique(lodos$country_name_lower),unique(country_ref$country_name_lower))) # 0
-sort(setdiff(unique(vpd_cases$country_name_lower),unique(country_ref$country_name_lower))) # 0
+vpd_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_processing/country_vpd_year_casedata.rds")
 
-unique(vpd_ref$vpd)
-sort(setdiff(unique(vpd_cases$vpd),unique(vpd_ref$vpd)))
-sort(setdiff(unique(lodos$vpd),unique(vpd_ref$vpd)))
+country_ref <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                                   file_loc = "data_processing/country_ref.rds")
+
+vpd_ref <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                                   file_loc = "data_processing/vpd_ref.rds")
+
+## ensure matching primary/foreign keys: country_name_lower and vpd
+#sort(setdiff(unique(lodos$country_name_lower),unique(country_ref$country_name_lower))) # 0
+#sort(setdiff(unique(vpd_cases$country_name_lower),unique(country_ref$country_name_lower))) # 0
+
+# unique(vpd_ref$vpd)
+# sort(setdiff(unique(vpd_cases$vpd),unique(vpd_ref$vpd)))
+# sort(setdiff(unique(lodos$vpd),unique(vpd_ref$vpd)))
 
 vpd_cases <- vpd_cases %>% mutate(vpd = case_when(
   vpd == "Congenital rubella syndrome" ~ "Congenital rubella syndrome (CRS)",
   vpd == "Neonatal tetanus" ~ "Tetanus (neonatal)",
   vpd == "Total tetanus" ~ "Tetanus (neonatal and/or non-neonatal)",
+  vpd =="YellowFever" ~ "Yellow fever",
   T ~ vpd
 ))
 
@@ -400,6 +621,21 @@ class(wide_data_ref$incidence)
 wide_data_ref$lod_count_atleastone <- ifelse(is.na(wide_data_ref$lod_count), NA, 
                                              ifelse(wide_data_ref$lod_count >= 1, 1, 0))
 
+## add col on % of total cases in each country (for each vpd-year)
+case_counts_global <- wide_data_ref %>% group_by(year, vpd) %>% 
+  summarize(global_case_count = sum(num_cases_WHOofficial, na.rm=TRUE))
+
+# wide_data_ref[]
+# 
+# wide_data_ref$total_cntry_cases <- wide_data_ref %>% group
+# wide_data_ref$total_glbl_cases <- 
+
+## for PowerBI, need to change ROC variable so automaps correctly
+
+# add population data to country reference data
+ctry.pop <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                                  file_loc = "data_clean/ctry_pop.rds")
+
 ## Create long data set using variable (epi var) and value
 long_data_ref <- wide_data_ref %>%
   pivot_longer(cols = c(num_cases_WHOofficial, lod_count, lod_count_atleastone, incidence),
@@ -412,8 +648,90 @@ long_data_ref <-long_data_ref[,c(cols_first,
                               setdiff(names(long_data_ref), cols_first)) # other cols
 ]
 
+# drop rows where value is missing
+long_data_ref <- long_data_ref %>% filter(!is.na(value))
+long_data_ref$variable[long_data_ref$variable == "num_cases_WHOofficial"] <- "cases"
+
 
 # write clean data to ADLS
 sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_clean/country_vpd_year_casedata.rds", obj = long_data_ref)
 
+# save as csv to be accessed in PowerBI
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_clean/country_vpd_year_casedata.csv", obj = long_data_ref)
+
+# save as csv to be accessed in PowerBI
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_clean/country_vpd_year_casedata.csv", obj = long_data_ref)
+
+#######################################################################
+## ADD VPD CASE ADDITIONAL DATA - CHOLERA, COVID19, MPOX CASES; MEASLES & POLIO 2024 CASES
+#######################################################################
+rm(list=ls())
+
+# READ IN DATA CLEANED ABOVE
+data <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                              file_loc = "data_clean/country_vpd_year_casedata.rds")
+
+cholera <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                              file_loc = "data_processing/cholera-cntry-year-cases.rds")
+
+covid19 <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                                 file_loc = "data_processing/covid19-cntry-year-cases.rds")
+
+mpox <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                                         file_loc = "data_processing/mpox-cntry-year-cases.rds")
+
+polio2024 <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                                 file_loc = "data_processing/polio-cntry-2024-cases.rds")
+
+measles2024 <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                                   file_loc = "data_processing/measles-cntry-2024-cases.rds")
+
+all_vpds <- data %>% select(iso3_code, value, variable, vpd, year)
+
+## confirm cols in appropriate name order before row binding
+# names(cholera) == names(covid19)
+# names(covid19)== names(mpox)
+# names(mpox)==names(polio2024)
+# names(polio2024)==names(measles2024)
+#names(polio2024)==names(all_vpds)
+
+long_df <- all_vpds %>% rbind(
+  cholera, covid19, mpox, polio2024, measles2024
+)
+
+long_df$variable[long_df$variable=="confirmed_cases"] <- "cases"
+
+# save to processing folder version without reference data attached
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", 
+                                     file_loc = "data_processing/vpd_cases_ctry_yr_1980-2024.rds",
+                                     obj=long_df)
+
+# remerge with most recent GID reference data for countries and VPDs
+country_ref <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                                     file_loc = "data_processing/country_ref.rds")
+vpd_ref <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                                     file_loc = "data_processing/vpd_ref.rds")
+
+vpd_cases_ctry_yr_ref <- long_df %>% left_join(
+  country_ref, by = "iso3_code") %>% left_join(
+  vpd_ref, by = "vpd"
+  )
+  
+# sort
+cols_first <- c("iso3_code","country_name","country_abbrev","year","vpd","variable","value")
+vpd_cases_ctry_yr_ref <-vpd_cases_ctry_yr_ref[,c(cols_first,
+                                 setdiff(names(vpd_cases_ctry_yr_ref), cols_first)) # other cols
+]
+
+
+# save to clean data folder as rds and csv files
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", 
+                        file_loc = "data_clean/country_vpd_year_casedata.rds",
+                        obj=vpd_cases_ctry_yr_ref)
+
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", 
+                      file_loc = "data_clean/country_vpd_year_casedata.csv",
+                      obj=vpd_cases_ctry_yr_ref)
