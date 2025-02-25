@@ -50,7 +50,9 @@ region.counts.shape <- dplyr::left_join(ctry.24.shapes, region.imports.count, by
 ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
   geom_sf(aes(fill = factor(case_count))) +
   theme_bw() +
-  scale_fill_manual(values = c("0" = "grey", "2" = "green", "11" = "yellow", "24" = "orange", "48" = "red"))
+  scale_fill_manual(values = c("0" = "grey", "2" = "green", "11" = "yellow", "24" = "orange", "48" = "red")) +
+  labs(fill = "# Measles Cases") +
+  ggtitle("Measles Cases Imported to US from WHO Region, 2020 - 2024")
 
 
 #total percentages of imported measles cases
@@ -68,5 +70,7 @@ region.percents.shape <- dplyr::left_join(ctry.24.shapes, region.imports.per, by
 ggplot(region.percents.shape |> dplyr::filter(year == "Total")) +
   geom_sf(aes(fill = factor(percentage))) +
   theme_bw() +
-  scale_fill_manual(values = c("0.00" = "grey", "0.02" = "green", "0.12" = "yellow", "0.26" = "orange", "0.52" = "red"))
+  scale_fill_manual(values = c("0.00" = "grey", "0.02" = "green", "0.12" = "yellow", "0.26" = "orange", "0.52" = "red"))  +
+  labs(fill = "% Measles Cases") +
+  ggtitle("Percentage of Measles Cases Imported to US by WHO Region, 2020 - 2024")
 
