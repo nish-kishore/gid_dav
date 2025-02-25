@@ -35,22 +35,22 @@ measles.import.data.list <- sirfunctions::edav_io(io = "read", default_dir = "GI
 #using 2024 country shapes because maps are at region level so year specific countries aren't that important 
 #compared to keeping shapes constant for year to year maps
 ctry.24.shapes <- long.global.ctry |>
-  dplyr::filter(active.year.01 == 2024) |>
-  dplyr::mutate(WHO_REGION = ifelse(ADM0_NAME == "UNITED STATES OF AMERICA", NA, WHO_REGION))
+  dplyr::filter(active.year.01 == 2024) 
 
 region.imports.count <- measles.import.data.list$region.imports.count |>
   tidyr::pivot_longer("Total":"2024") |>
   dplyr::rename("year" = "name", 
                 "case_count" = "value") |>
-  dplyr::arrange(year)
+  dplyr::arrange(year) 
 
-region.counts.shape <- dplyr::left_join(ctry.24.shapes, region.imports.count, by = c("WHO_REGION" = "Source_WHO_region"))
+region.counts.shape <- dplyr::left_join(ctry.24.shapes, region.imports.count, by = c("WHO_REGION" = "Source_WHO_region")) |>
+  dplyr::mutate(case_count = ifelse(ADM0_NAME == "UNITED STATES OF AMERICA", 0, case_count))
   
 #total importations
 ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
   geom_sf(aes(fill = factor(case_count))) +
   theme_bw() +
-  scale_fill_manual(values = c("2" = "green", "11" = "yellow", "24" = "orange", "48" = "red"))
+  scale_fill_manual(values = c("0" = "grey", "2" = "green", "11" = "yellow", "24" = "orange", "48" = "red"))
 
 
 #total percentages of imported measles cases
@@ -60,10 +60,13 @@ region.imports.per <- measles.import.data.list$region.import.percentage |>
                 "percentage" = "value") |>
   dplyr::arrange(year)
 
-region.percents.shape <- dplyr::left_join(ctry.24.shapes, region.imports.per, by = c("WHO_REGION" = "Source_WHO_region"))  
+region.percents.shape <- dplyr::left_join(ctry.24.shapes, region.imports.per, by = c("WHO_REGION" = "Source_WHO_region")) |>
+  dplyr::mutate(percentage = ifelse(ADM0_NAME == "UNITED STATES OF AMERICA", 0, percentage))
+
 
 #percentage of importations
 ggplot(region.percents.shape |> dplyr::filter(year == "Total")) +
   geom_sf(aes(fill = factor(percentage))) +
   theme_bw() +
-  scale_fill_manual(values = c("0.02" = "green", "0.12" = "yellow", "0.26" = "orange", "0.52" = "red"))
+  scale_fill_manual(values = c("0.00" = "grey", "0.02" = "green", "0.12" = "yellow", "0.26" = "orange", "0.52" = "red"))
+
