@@ -36,7 +36,8 @@ measles.import.data.list <- sirfunctions::edav_io(io = "read", default_dir = "GI
 #compared to keeping shapes constant for year to year maps
 region.imports.count <- measles.import.data.list$region.imports.count |>
   tidyr::pivot_longer("Total":"2024") |>
-  dplyr::rename("year" = "name") |>
+  dplyr::rename("year" = "name", 
+                "case_count" = "value") |>
   dplyr::arrange(year)
 
 ctry.24.shapes <- long.global.ctry |>
@@ -46,4 +47,6 @@ region.counts.shape <- dplyr::left_join(ctry.24.shapes, region.imports.count, by
   
 #total importations
 ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
+  geom_sf(aes(fill = case_count))
   
+          
