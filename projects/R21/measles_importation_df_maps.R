@@ -34,14 +34,15 @@ measles.import.data.list <- sirfunctions::edav_io(io = "read", default_dir = "GI
 #make importation case counts long and attach to 2024 country shapes by region
 #using 2024 country shapes because maps are at region level so year specific countries aren't that important 
 #compared to keeping shapes constant for year to year maps
+ctry.24.shapes <- long.global.ctry |>
+  dplyr::filter(active.year.01 == 2024) |>
+  dplyr::mutate(WHO_REGION = ifelse(ADM0_NAME == "UNITED STATES OF AMERICA", NA, WHO_REGION))
+
 region.imports.count <- measles.import.data.list$region.imports.count |>
   tidyr::pivot_longer("Total":"2024") |>
   dplyr::rename("year" = "name", 
                 "case_count" = "value") |>
   dplyr::arrange(year)
-
-ctry.24.shapes <- long.global.ctry |>
-  dplyr::filter(active.year.01 == 2024)
 
 region.counts.shape <- dplyr::left_join(ctry.24.shapes, region.imports.count, by = c("WHO_REGION" = "Source_WHO_region"))
   
