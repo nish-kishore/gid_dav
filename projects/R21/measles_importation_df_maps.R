@@ -50,5 +50,19 @@ ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
   geom_sf(aes(fill = factor(case_count))) +
   theme_bw() +
   scale_fill_manual(values = c("2" = "green", "11" = "yellow", "24" = "orange", "48" = "red"))
-  
-          
+
+
+#total percentages of imported measles cases
+region.imports.per <- measles.import.data.list$region.import.percentage |>
+  tidyr::pivot_longer("Total":"2024") |>
+  dplyr::rename("year" = "name", 
+                "percentage" = "value") |>
+  dplyr::arrange(year)
+
+region.percents.shape <- dplyr::left_join(ctry.24.shapes, region.imports.per, by = c("WHO_REGION" = "Source_WHO_region"))  
+
+#percentage of importations
+ggplot(region.percents.shape |> dplyr::filter(year == "Total")) +
+  geom_sf(aes(fill = factor(percentage))) +
+  theme_bw() +
+  scale_fill_manual(values = c("0.02" = "green", "0.12" = "yellow", "0.26" = "orange", "0.52" = "red"))
