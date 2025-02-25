@@ -1,0 +1,124 @@
+## X/Y axis showing % of travelers from CC and measles cumulative case counts by pop
+# Updated 2025-02-25
+# Author: Erin Goucher
+
+## Install dependencies
+required.packages <- c("tidyverse", "AzureStor","Microsoft365R", "readxl", "janitor","scales", "devtools")
+packages.to.install <- setdiff(required.packages, installed.packages())
+if(length(packages.to.install) >0) install.packages(packages.to.install)
+
+# GID PEB SIR Team functions - use to read data from ADLS
+
+
+library(tidyverse)
+library(readxl)
+library(AzureStor)
+library(Microsoft365R)
+library(janitor)
+library(scales)
+library(ggplot2)
+library(ggrepel)  
+library(scales)   
+
+# GID PEB SIR Team functions - use to read data from ADLS
+install.packages("devtools")
+library(devtools)
+devtools::install_github("nish-kishore/sirfunctions")
+
+# getwd()
+
+datt_task_id <- "R18"
+
+#######################################################################
+## READ INPUT DATA
+#######################################################################
+
+# Data set to read from ADLS
+data_ctr_pop <- "data_clean/ctry_pop.rds"
+data_ctr_pop <- sirfunctions::edav_io(io = "read", 
+                                      default_dir = "GID/GIDMEA/giddatt", 
+                                      file_loc = data_ctr_pop)
+
+data_trvlr <- "data_clean/traveler_outbound.rds" 
+data_trvlr <- sirfunctions::edav_io(io = "read", 
+				default_dir = "GID/GIDMEA/giddatt", 
+				file_loc = data_trvlr)
+				
+
+data_cases <- "data_clean/tbl1_1980-2023_casecounts_by_country_vpd.csv" 
+data_cases <- sirfunctions::edav_io(io = "read",
+				default_dir = "GID/GIDMEA/giddatt", 
+				file_loc = data_cases)
+
+
+
+#######################################################################
+## MERGE DATA
+#######################################################################
+# Ensure `ADM0_NAME` in `data_ctr_pop` is formatted consistently to match `country_name` 
+data_ctr_pop <- data_ctr_pop %>% 
+	mutate(ADM0_NAME = str_to_title(tolower(ADM0_NAME))) 
+	
+# Merge `data_cases` directly with `data_ctr_pop` on `country_name` and `year` 
+joined_data <- data_cases %>% 
+				inner_join(data_ctr_pop, by = c("country_name" = "ADM0_NAME", "year" = "year")) %>% 
+				inner_join(data_trvlr, by = c("country_name" = "ctry", "year" = "year"))
+
+
+#######################################################################
+## FILTER DATA
+#######################################################################
+# Define the countries of interest 
+countries_of_interest <- c("Afghanistan", "Pakistan", "Nigeria", "Ethiopia", "Democratic Republic of the Congo", "Indonesia", "Philippines", "Brazil") 
+
+# Filter for only these countries
+filtered_ctr_data <- joined_data %>% filter(country_name %in% countries_of_interest) 
+
+
+#Filter for measles 
+filtered_msls_data <- filtered_ctr_data %>%
+  filter(vpd == "Measles")
+
+# Rename dataset
+R18_dataset <- filtered_msls_data
+
+# Filter dataset for years 2018-2023 
+R18_filtered <- R18_dataset %>% filter(year >= 2018 & year <= 2023)
+
+# Filter dataset for years 2018-2023 
+R18_filtered <- R18_dataset %>% filter(year >= 2018 & year <= 2023) 
+
+# Summarize total measles cases by country (for 2018-2023) 
+total_measles_cases <- R18_filtered %>% filter(vpd == "Measles") %>% 
+
+# Filter for Measles only 
+group_by(country_name) %>% summarize(total_measles_cases = sum(num_cases_WHOofficial, na.rm = TRUE)) 
+
+# Summarize total travelers by country (for 2018-2023) 
+total_travelers <- R18_filtered %>% group_by(country_name) %>% summarize(total_travelers = sum(count, na.rm = TRUE))
+
+# Merge both summaries into one dataset 
+R18_summary <- total_measles_cases %>% inner_join(total_travelers, by = "country_name")
+
+#######################################################################
+## CREATE GRAPH
+#######################################################################
+
+# Create bubble chart
+ggplot(R18_summary, aes(x = total_travelers, y = total_measles_cases, label = country_name)) +
+  geom_point(aes(size = total_travelers), color = "blue", alpha = 0.5) +  # Transparent bubbles
+  geom_text_repel(size = 3, max.overlaps = 20, force = 2, box.padding = 0.6, point.padding = 0.3) +  
+  scale_x_continuous(labels = scales::label_number(scale = 1e-3, suffix = "K")) +  # Convert x-axis to 'K' format
+  scale_y_continuous(labels = scales::label_number(scale = 1e-3, suffix = "K")) +  # Convert y-axis to 'K' format
+  scale_size_continuous(range = c(3, 15), labels = scales::label_number(scale = 1e-3, suffix = "K")) +  # Legend in 'K'
+  labs(
+    title = "Total Travelers vs. Measles Cases (2018-2023)",
+    x = "Total Travelers to the US (in thousands)",
+    y = "Total Measles Cases (in thousands)",
+    size = "Total Travelers (K)"  # Update legend title
+  ) +
+  theme_minimal()
+
+
+
+
