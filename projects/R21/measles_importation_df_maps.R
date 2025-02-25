@@ -47,6 +47,8 @@ region.counts.shape <- dplyr::left_join(ctry.24.shapes, region.imports.count, by
   
 #total importations
 ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
-  geom_sf(aes(fill = case_count))
+  geom_sf(aes(fill = factor(case_count))) +
+  theme_bw() +
+  scale_fill_manual(values = c("2" = "green", "11" = "yellow", "24" = "orange", "48" = "red"))
   
           
