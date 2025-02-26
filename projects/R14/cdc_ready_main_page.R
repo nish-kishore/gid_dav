@@ -9,7 +9,7 @@ source(here("reference/obx_packages_01.R"))
 library(aweek)
 
 # Get data
-raw.data <- get_all_polio_data()
+raw.data <- sirfunctions::get_all_polio_data()
 
 # Set Inputs
 
@@ -257,7 +257,14 @@ if(!dir.exists(here("output"))){
 
 write_xlsx(dfs, path = here(paste0("output/cdcready_polio_main_page_",format(end_date, "%y%m%d"),".xlsx", sep = "")))
 
-# ggplot(t4_epi_es, aes(e_date, n, fill = m_sub2)) +
+# g1a <- ggplot(t4_epi_all, aes(e_date, n, fill = m_sub2)) +
 #      geom_bar(stat = "identity") +
 #      scale_x_date(date_breaks="2 week", date_labels = "%Y-%W") +
-#      theme(axis.text.x  = element_text(angle = 45, hjust = 1))
+#      guides(fill=guide_legend(title="Virus Serotype:")) + 
+#      theme_bw() +
+#      theme(axis.text.x  = element_text(angle = 45, hjust = 1),
+#           legend.position = "bottom") + 
+#      labs(y = "No. of detections (AFP / ES)", x = "Date of Paralysis Onset / ES Collection (Epi Week)") + 
+#      scale_y_continuous(breaks = seq(0,50,10))
+#   
+# ggsave(g1a, filename = "test1.png", width = 8, heigh = 4, scale = 1.5, dpi = 300)
