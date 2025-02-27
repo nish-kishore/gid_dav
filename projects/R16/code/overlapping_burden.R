@@ -137,6 +137,10 @@ create_vpd_burden_map <- function(coi, ctry.sp, data){
       filter(admin %in% c("Papua New Guinea", "Malaysia", "East Timor"))
   }
 
+  if(coi == "PAK"){
+    neighboring.ctry <- neighboring.ctry |> filter(admin != "Siachen Glacier")
+  }
+
   ctry.centers <- bind_rows(ctry, neighboring.ctry) |>
     st_centroid()
 
@@ -157,6 +161,7 @@ create_vpd_burden_map <- function(coi, ctry.sp, data){
         T ~ 1.5
       )
     ) |>
+    filter(value > 0) |>
     st_as_sf()
 
   #determine if each country is long, wide or square
@@ -205,7 +210,7 @@ create_vpd_burden_map <- function(coi, ctry.sp, data){
     labs(
       fill = "VPD",
       size = "# cases",
-      title = paste0("Burden of most prevalent vaccine preventable diseases (VPDs) in ", filter(ctry.sp, iso_a3 == coi) |> pull(admin), " and neighboring countries"),
+      title = paste0("Burden of select vaccine preventable diseases (VPDs) in ", filter(ctry.sp, iso_a3 == coi) |> pull(admin), " and neighboring countries"),
       subtitle = paste0("Cumulative cases between 2019-2024\nNeighboring countries include: ", neighboring.ctry$admin |> sort() |> paste0(collapse = ", "))
     ) +
     theme(panel.background = element_rect(fill = "lightblue"),
