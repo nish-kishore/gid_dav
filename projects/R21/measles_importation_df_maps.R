@@ -64,7 +64,7 @@ ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
   theme_bw() +
   labs(y = "", x = "") +
   labs(fill = "Region") +
-  ggtitle("Measles Cases Imported to US by WHO Region, 2020 - 2024, N = 93")
+  ggtitle("Measles Cases Imported to US by WHO Region, 2020 - 2024")
 
 ggsave(here("projects/R21/outputs/measles_total_import_num.png"), width = 10, height = 6, dpi = 300)
 
@@ -80,7 +80,7 @@ ggplot(region.counts.shape |> dplyr::filter(!year %in% c("Total", "2020–2023")
   labs(y = "", x = "") +
   theme_bw() +
   labs(fill = "Region") +
-  ggtitle("Measles Cases Imported to US by WHO Region and Year, 2020 - 2024, N = 93")
+  ggtitle("Measles Cases Imported to US by WHO Region and Year, 2020 - 2024")
 
 ggsave(here("projects/R21/outputs/measles_yearly_import_num.png"), width = 15, height = 6, dpi = 300)
 
@@ -112,7 +112,7 @@ ggplot(region.percents.shape |> dplyr::filter(year == "Total")) +
   theme_bw() +
   labs(y = "", x = "") +
   labs(fill = "Region") +
-  ggtitle("Percentage of Measles Cases Imported to US by WHO Region, 2020 - 2024")
+  ggtitle("Percentage of Measles Cases Imported to US by WHO Region, 2020 - 2024, N = 93")
 
 ggsave(here("projects/R21/outputs/measles_total_import_per.png"), width = 10, height = 6, dpi = 300)
 
@@ -128,7 +128,7 @@ ggplot(region.percents.shape |> dplyr::filter(!year %in% c("Total", "2020–2023
   labs(y = "", x = "") +
   theme_bw() +
   labs(fill = "Region") +
-  ggtitle("% of Measles Cases Imported to US by WHO Region and Year, 2020 - 2024")
+  ggtitle("% of Measles Cases Imported to US by WHO Region and Year, 2020 - 2024, N = 93")
 
 ggsave(here("projects/R21/outputs/measles_yearly_import_per.png"), width = 15, height = 6, dpi = 300)
 
