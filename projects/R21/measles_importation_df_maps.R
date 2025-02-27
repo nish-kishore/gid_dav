@@ -80,7 +80,7 @@ ggplot(region.counts.shape |> dplyr::filter(!year %in% c("Total", "2020–2023")
   labs(y = "", x = "") +
   theme_bw() +
   labs(fill = "Region") +
-  ggtitle("Measles Cases Imported to US by WHO Region and Year, 2020 - 2024")
+  ggtitle("Measles Cases Imported to US by WHO Region and Year, 2020 - 2024, N = 93")
 
 ggsave(here("projects/R21/outputs/measles_yearly_import_num.png"), width = 15, height = 6, dpi = 300)
 
