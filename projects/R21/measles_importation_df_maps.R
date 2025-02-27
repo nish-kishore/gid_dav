@@ -49,7 +49,11 @@ region.counts.shape <- dplyr::left_join(ctry.24.shapes, region.imports.count, by
 #total importations
 ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
   geom_sf(aes(fill = case_count), color = NA) +
+  geom_sf_text(data = region.counts.shape |> 
+                 dplyr::filter(ADM0_NAME %in% c("BRAZIL", "DEMOCRATIC REPUBLIC OF THE CONGO", "SAUDI ARABIA", "BELARUS", "CHINA", "INDONESIA") & year == "Total"), 
+               aes(label = case_count), color = "red") +
   theme_bw() +
+  labs(y = "", x = "") +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   labs(fill = "# Imported Measles Cases") +
   ggtitle("Measles Cases Imported to US by WHO Region, 2020 - 2024")
@@ -58,7 +62,11 @@ ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
 ggplot(region.counts.shape |> dplyr::filter(!year %in% c("Total", "2020–2023"))) +
   geom_sf(aes(fill = case_count), color = NA) +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
+  geom_sf_text(data = region.counts.shape |> 
+                 dplyr::filter(ADM0_NAME %in% c("BRAZIL", "DEMOCRATIC REPUBLIC OF THE CONGO", "SAUDI ARABIA", "BELARUS", "CHINA", "INDONESIA") & !year %in% c("Total", "2020–2023")), 
+               aes(label = case_count), color = "red") +
   facet_wrap(vars(year)) +
+  labs(y = "", x = "") +
   theme_bw() +
   labs(fill = "# Measles Cases") +
   ggtitle("Measles Cases Imported to US by WHO Region and Year, 2020 - 2024")
@@ -77,7 +85,11 @@ region.percents.shape <- dplyr::left_join(ctry.24.shapes, region.imports.per, by
 #percentage of importations
 ggplot(region.percents.shape |> dplyr::filter(year == "Total")) +
   geom_sf(aes(fill = percentage), color = NA) +
+  geom_sf_text(data = region.percents.shape |> 
+                 dplyr::filter(ADM0_NAME %in% c("BRAZIL", "DEMOCRATIC REPUBLIC OF THE CONGO", "SAUDI ARABIA", "BELARUS", "CHINA", "INDONESIA") & year == "Total"), 
+               aes(label = paste0(100 * percentage, "%")), color = "red") +
   theme_bw() +
+  labs(y = "", x = "") +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   labs(fill = "% Measles Cases") +
   ggtitle("Percentage of Measles Cases Imported to US by WHO Region, 2020 - 2024")
@@ -86,7 +98,11 @@ ggplot(region.percents.shape |> dplyr::filter(year == "Total")) +
 ggplot(region.percents.shape |> dplyr::filter(!year %in% c("Total", "2020–2023"))) +
   geom_sf(aes(fill = percentage), color = NA) +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
+  geom_sf_text(data = region.percents.shape |> 
+                 dplyr::filter(ADM0_NAME %in% c("BRAZIL", "DEMOCRATIC REPUBLIC OF THE CONGO", "SAUDI ARABIA", "BELARUS", "CHINA", "INDONESIA") & !year %in% c("Total", "2020–2023")), 
+               aes(label = paste0(100 * percentage, "%")), color = "red") +
   facet_wrap(vars(year)) +
+  labs(y = "", x = "") +
   theme_bw() +
   labs(fill = "% Measles Cases") +
   ggtitle("% of Measles Cases Imported to US by WHO Region and Year, 2020 - 2024")
