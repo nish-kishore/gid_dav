@@ -7,7 +7,7 @@ library(here)
 #read in and process data
 
 priority.countries <- c("ETH", "NGA", "COD", "IDN", "BRA", "PHL", "AFG", "PAK")
-#
+
 # data <- read_excel("C:/Users/ynm2/Downloads/Annual-Arrivals-2000-to-Present–Country-of-Residence.xlsx", sheet = "Annual") |>
 #   slice_tail(n = 235) |>
 #   select(-starts_with("...")) |>
@@ -40,7 +40,7 @@ priority.countries <- c("ETH", "NGA", "COD", "IDN", "BRA", "PHL", "AFG", "PAK")
 # ctry.sp <- ne_countries(type = "countries",
 #                         scale = "medium", returnclass = "sf") |>
 #   mutate(gid_priority = ifelse(iso_a3 %in% priority.countries, "Priority", NA)) |>
-#   select(admin, gid_priority) |>
+#   select(admin, gid_priority, iso_a3, region_un) |>
 #   filter(admin != "Antarctica") |>
 #   mutate(admin = case_when(
 #     admin == "Sint Maarten" ~ "Saint Maarten",
