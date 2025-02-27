@@ -90,7 +90,7 @@ left_join(ctry.sp, data |> filter(year == 2023, !ctry %in% c("Mexico", "Canada")
   geom_sf(data = ctry.sp |> filter(!is.na(gid_priority)), color = "red", fill = NA, size = 1.1) +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   theme_bw() +
-  labs(fill = "# travelers", title = "Number of non-US citizens entering the USA in 2023 by country of origin not including Mexico and Canada",
+  labs(fill = "# travelers", title = "Number of non-US citizen travelers entering the USA in 2023 by country of origin (not including Mexico and Canada)",
        subtitle = paste0("GID Critical Countries (AFG, BRA, COD, ETH, IDN, NGA, PHL, PAK) outlined\n",scales::comma(total_num)," international travelers from priority countries in 2023"),
        caption = "Data from the National Travel and Tourism Office of the International Trade Administration\n(https://www.trade.gov/feature-article/ntto-releases-international-travel-statistics-2023)\nProduced by CDC-GHC-GID")
 
