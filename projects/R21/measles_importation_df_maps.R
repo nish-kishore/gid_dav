@@ -48,7 +48,7 @@ region.counts.shape <- dplyr::left_join(ctry.24.shapes, region.imports.count, by
   
 #total importations
 ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
-  geom_sf(aes(fill = case_count)) +
+  geom_sf(aes(fill = case_count), color = NA) +
   theme_bw() +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   labs(fill = "# Imported Measles Cases") +
@@ -56,7 +56,7 @@ ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
 
 #facet wrap for each year 2020 - 2024
 ggplot(region.counts.shape |> dplyr::filter(!year %in% c("Total", "2020–2023"))) +
-  geom_sf(aes(fill = case_count)) +
+  geom_sf(aes(fill = case_count), color = NA) +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   facet_wrap(vars(year)) +
   theme_bw() +
@@ -76,7 +76,7 @@ region.percents.shape <- dplyr::left_join(ctry.24.shapes, region.imports.per, by
 
 #percentage of importations
 ggplot(region.percents.shape |> dplyr::filter(year == "Total")) +
-  geom_sf(aes(fill = percentage)) +
+  geom_sf(aes(fill = percentage), color = NA) +
   theme_bw() +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   labs(fill = "% Measles Cases") +
@@ -84,7 +84,7 @@ ggplot(region.percents.shape |> dplyr::filter(year == "Total")) +
 
 #facet wrap percentage of importations by year
 ggplot(region.percents.shape |> dplyr::filter(!year %in% c("Total", "2020–2023"))) +
-  geom_sf(aes(fill = percentage)) +
+  geom_sf(aes(fill = percentage), color = NA) +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   facet_wrap(vars(year)) +
   theme_bw() +
