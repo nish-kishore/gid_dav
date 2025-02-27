@@ -4,6 +4,7 @@ library(tidyr)
 library(readxl)
 library(sirfunctions)
 library(ggplot2)
+library(here)
 
 global.ctry <- sirfunctions::load_clean_ctry_sp()
 long.global.ctry <- sirfunctions::load_clean_ctry_sp(type = "long")
@@ -59,6 +60,8 @@ ggplot(region.counts.shape |> dplyr::filter(year == "Total")) +
   labs(fill = "WHO Region") +
   ggtitle("Measles Cases Imported to US by WHO Region, 2020 - 2024")
 
+ggsave(here("projects/R21/outputs/measles_total_import_num.png"), width = 10, height = 6, dpi = 300)
+
 #facet wrap for each year 2020 - 2024
 ggplot(region.counts.shape |> dplyr::filter(!year %in% c("Total", "2020–2023"))) +
   geom_sf(aes(fill = WHO_REGION), color = NA) +
@@ -72,6 +75,8 @@ ggplot(region.counts.shape |> dplyr::filter(!year %in% c("Total", "2020–2023")
   theme_bw() +
   labs(fill = "WHO Region") +
   ggtitle("Measles Cases Imported to US by WHO Region and Year, 2020 - 2024")
+
+ggsave(here("projects/R21/outputs/measles_yearly_import_num.png"), width = 15, height = 6, dpi = 300)
 
 #total percentages of imported measles cases
 region.imports.per <- measles.import.data.list$region.import.percentage |>
@@ -97,6 +102,8 @@ ggplot(region.percents.shape |> dplyr::filter(year == "Total")) +
   labs(fill = "WHO Region") +
   ggtitle("Percentage of Measles Cases Imported to US by WHO Region, 2020 - 2024")
 
+ggsave(here("projects/R21/outputs/measles_total_import_per.png"), width = 10, height = 6, dpi = 300)
+
 #facet wrap percentage of importations by year
 ggplot(region.percents.shape |> dplyr::filter(!year %in% c("Total", "2020–2023"))) +
   geom_sf(aes(fill = WHO_REGION), color = NA) +
@@ -110,3 +117,5 @@ ggplot(region.percents.shape |> dplyr::filter(!year %in% c("Total", "2020–2023
   theme_bw() +
   labs(fill = "WHO Region") +
   ggtitle("% of Measles Cases Imported to US by WHO Region and Year, 2020 - 2024")
+
+ggsave(here("projects/R21/outputs/measles_yearly_import_num.png"), width = 15, height = 6, dpi = 300)
