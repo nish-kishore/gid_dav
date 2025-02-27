@@ -7,7 +7,7 @@ library(here)
 #read in and process data
 
 priority.countries <- c("ETH", "NGA", "COD", "IDN", "BRA", "PHL", "AFG", "PAK")
-#
+
 # data <- read_excel("C:/Users/ynm2/Downloads/Annual-Arrivals-2000-to-Present–Country-of-Residence.xlsx", sheet = "Annual") |>
 #   slice_tail(n = 235) |>
 #   select(-starts_with("...")) |>
@@ -40,7 +40,7 @@ priority.countries <- c("ETH", "NGA", "COD", "IDN", "BRA", "PHL", "AFG", "PAK")
 # ctry.sp <- ne_countries(type = "countries",
 #                         scale = "medium", returnclass = "sf") |>
 #   mutate(gid_priority = ifelse(iso_a3 %in% priority.countries, "Priority", NA)) |>
-#   select(admin, gid_priority) |>
+#   select(admin, gid_priority, iso_a3, region_un) |>
 #   filter(admin != "Antarctica") |>
 #   mutate(admin = case_when(
 #     admin == "Sint Maarten" ~ "Saint Maarten",
@@ -52,6 +52,18 @@ priority.countries <- c("ETH", "NGA", "COD", "IDN", "BRA", "PHL", "AFG", "PAK")
 
 data <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/traveler_outbound.rds")
 ctry.sp <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/ctry_shapes.rds")
+#polio.ctry <- sirfunctions::load_clean_ctry_sp(st_year = 2023)
+
+#fixing Morocco and Western Sahara
+# ctry.sp <- ctry.sp |> filter(!admin %in% c("Morocco", "Western Sahara")) |>
+#   bind_rows(
+#     polio.ctry |>
+#       filter(ADM0_NAME %in% c("MOROCCO", "WESTERN SAHARA")) |>
+#       select(admin = ADM0_SOVRN, iso_a3 = ISO_3_CODE, geometry = Shape) |>
+#       mutate(gid_priority = NA, region_un = "Africa")
+#   )
+
+# sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/ctry_shapes.rds", obj = ctry.sp)
 
 analytic.data <- left_join(data, ctry.sp, by = c("ctry" = "admin")) |> select(ctry, year, count, gid_priority) |>
   mutate(gid_priority = ifelse(is.na(gid_priority), "Not-priority", "Priority"))
@@ -90,7 +102,7 @@ left_join(ctry.sp, data |> filter(year == 2023, !ctry %in% c("Mexico", "Canada")
   geom_sf(data = ctry.sp |> filter(!is.na(gid_priority)), color = "red", fill = NA, size = 1.1) +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   theme_bw() +
-  labs(fill = "# travelers", title = "Number of non-US citizens entering the USA in 2023 by country of origin not including Mexico and Canada",
+  labs(fill = "# travelers", title = "Number of non-US citizen travelers entering the USA in 2023 by country of origin (not including Mexico and Canada)",
        subtitle = paste0("GID Critical Countries (AFG, BRA, COD, ETH, IDN, NGA, PHL, PAK) outlined\n",scales::comma(total_num)," international travelers from priority countries in 2023"),
        caption = "Data from the National Travel and Tourism Office of the International Trade Administration\n(https://www.trade.gov/feature-article/ntto-releases-international-travel-statistics-2023)\nProduced by CDC-GHC-GID")
 
