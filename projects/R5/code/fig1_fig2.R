@@ -52,16 +52,18 @@ priority.countries <- c("ETH", "NGA", "COD", "IDN", "BRA", "PHL", "AFG", "PAK")
 
 data <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/traveler_outbound.rds")
 ctry.sp <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/ctry_shapes.rds")
-polio.ctry <- sirfunctions::load_clean_ctry_sp(st_year = 2023)
+#polio.ctry <- sirfunctions::load_clean_ctry_sp(st_year = 2023)
 
 #fixing Morocco and Western Sahara
-ctry.sp <- ctry.sp |> filter(!admin %in% c("Morocco", "Western Sahara")) |>
-  bind_rows(
-    polio.ctry |>
-      filter(ADM0_NAME %in% c("MOROCCO", "WESTERN SAHARA")) |>
-      select(admin = ADM0_SOVRN, iso_a3 = ISO_3_CODE, geometry = Shape) |>
-      mutate(gid_priority = NA, region_un = "Africa")
-  )
+# ctry.sp <- ctry.sp |> filter(!admin %in% c("Morocco", "Western Sahara")) |>
+#   bind_rows(
+#     polio.ctry |>
+#       filter(ADM0_NAME %in% c("MOROCCO", "WESTERN SAHARA")) |>
+#       select(admin = ADM0_SOVRN, iso_a3 = ISO_3_CODE, geometry = Shape) |>
+#       mutate(gid_priority = NA, region_un = "Africa")
+#   )
+
+# sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/ctry_shapes.rds", obj = ctry.sp)
 
 analytic.data <- left_join(data, ctry.sp, by = c("ctry" = "admin")) |> select(ctry, year, count, gid_priority) |>
   mutate(gid_priority = ifelse(is.na(gid_priority), "Not-priority", "Priority"))
