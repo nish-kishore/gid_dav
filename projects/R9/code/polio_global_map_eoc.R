@@ -30,9 +30,16 @@ endem_ctry <- c("AFGHANISTAN", "PAKISTAN")
 # Output 
 datt_task_id <- "R9"
 sub_folder <- "3. Figures"
-fig_name <- paste("map_pvdetect_12m_",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
-temp_path <- file.path(tempdir(), fig_name)
-sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
+
+# with table 
+fig_name2 <- paste("map_pvdetect_12m_tab_",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
+temp_path2 <- file.path(tempdir(), fig_name2)
+sp_path2 <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name2, sep ="")
+
+
+fig_name1 <- paste("map_pvdetect_12m_fig_",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
+temp_path1 <- file.path(tempdir(), fig_name1)
+sp_path1 <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name1, sep ="")
 
 # Do you want to upload to sharepoint 
 uploadtosp <- "yes"
@@ -150,7 +157,23 @@ g1 <- ggplot() +
 # # Test print -> check what rolw is missing from the scale 
 print(g1)
 
-
+# Save Locally
+if(uploadtosp == "yes"){
+  
+  ggsave(filename = temp_path2, height = 8.3, width = 13, units = "in", scale = 1.5, dpi = 300)
+  cli::cli_alert("Beep Beep - Image Saved to Temp Folder")
+  
+  upload_to_sharepoint(
+    file_to_upload = temp_path2,  # Writes to temp directory 
+    sharepoint_file_loc = sp_path2,
+    site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
+    drive = "Documents")
+  
+  cli::cli_alert("Beep Beep - Image uploaded to Sharepoint")
+  
+}else{
+  cli::cli_alert("No output saved")
+}
 
 # Quick count Table
 
@@ -217,12 +240,12 @@ print(p1)
 # Save Locally
 if(uploadtosp == "yes"){
 
-  ggsave(filename = temp_path, height = 8.3, width = 13, units = "in", scale = 1.5, dpi = 300)
+  ggsave(filename = temp_path1, height = 8.3, width = 13, units = "in", scale = 1.5, dpi = 300)
   cli::cli_alert("Beep Beep - Image Saved to Temp Folder")
   
   upload_to_sharepoint(
-    file_to_upload = temp_path,  # Writes to temp directory 
-    sharepoint_file_loc = sp_path,
+    file_to_upload = temp_path1,  # Writes to temp directory 
+    sharepoint_file_loc = sp_path1,
     site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
     drive = "Documents")
   
