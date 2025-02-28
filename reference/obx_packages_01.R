@@ -41,11 +41,11 @@ installPackage(kableExtra)
 installPackage(knitr)
 # installPackage(tinytex)
 
-# Read in R 
+# Read in R
 installPackage(readxl)
 installPackage(writexl)
 
-# Graphing 
+# Graphing
 installPackage(cowplot)
 installPackage(RColorBrewer)
 installPackage(patchwork)
@@ -67,13 +67,15 @@ installPackage(ggtext)
 # cluster analysis
 installPackage(cluster)
 
-# # SIR Functions 
+# # SIR Functions
 # devtools::install_github("https://github.com/nish-kishore/sirfunctions", "temp-fix")
 installPackage(sirfunctions)
 
-# Writing to Sharepoint 
+# Writing to Sharepoint
 installPackage(officer)
 installPackage(Microsoft365R)
 installPackage(measurements)
 
+#clean up
+rm(installPackage)
 
