@@ -77,7 +77,7 @@ sf_point_parsing <- function(ctry.info, jitter.scale){
       ctry.info |>
         as_tibble() |>
         select(-geometry) |>
-        bind_cols("lon" = as.numeric(x + (h/jitter.scale / 6370000) * (180 / pi) * t.mat)) |>
+        bind_cols("lon" = as.numeric(x + (h/jitter.scale / 6370000) * (180 / pi) * t.mat / cos(x * pi/180))) |>
         mutate("lat" = y) |>
         st_as_sf(coords = c("x" = "lon", "y" = "lat"), crs = st_crs(ctry.info)))
 
@@ -106,7 +106,7 @@ sf_point_parsing <- function(ctry.info, jitter.scale){
       ctry.info |>
         as_tibble() |>
         select(-geometry) |>
-        bind_cols("lon" = as.numeric(x + (h/jitter.scale / 6370000) * (180 / pi) * t.mat.x)) |>
+        bind_cols("lon" = as.numeric(x + (h/jitter.scale / 6370000) * (180 / pi) * t.mat.x/ cos(x * pi/180))) |>
         mutate("lat" = as.numeric(y + (h/jitter.scale / 6370000) * (180 / pi) * t.mat.y)) |>
         st_as_sf(coords = c("x" = "lon", "y" = "lat"), crs = st_crs(ctry.info)))
 
@@ -117,8 +117,10 @@ sf_point_parsing <- function(ctry.info, jitter.scale){
 
 create_vpd_burden_map <- function(coi, ctry.sp, data){
 
+  #subsetting spatial file to country of interest
   ctry <- ctry.sp |> filter(iso_a3 == coi)
 
+  #identify all neighboring countries
   neighboring.ctry <- ctry.sp[
     ctry.sp |>
       filter(iso_a3 == coi) |>
@@ -127,6 +129,7 @@ create_vpd_burden_map <- function(coi, ctry.sp, data){
     filter(iso_a3 != coi,
            region_un == ctry$region_un)
 
+  #fixing country specific neighbors
   if(coi == "PHL"){
     neighboring.ctry <- ctry.sp |>
       filter(admin %in% c("Taiwan", "Vietnam", "Indonesia", "Malaysia", "China", "Japan"))
@@ -141,11 +144,14 @@ create_vpd_burden_map <- function(coi, ctry.sp, data){
     neighboring.ctry <- neighboring.ctry |> filter(admin != "Siachen Glacier")
   }
 
+  #calculate spatial centers of each country
   ctry.centers <- bind_rows(ctry, neighboring.ctry) |>
     st_centroid()
 
+  #create zoomed bounding box
   plot.bbox <- bind_rows(ctry, neighboring.ctry) |> st_bbox() |> sirfunctions::f.expand.bbox(X = 100000, Y = 100000)
 
+  #create joint dataset for visualization
   plot.data <- data |>
     filter(iso3_code %in% c(coi, neighboring.ctry$iso_a3)) |>
     left_join(ctry.centers |> select(iso_a3), by = c("iso3_code" = "iso_a3")) |>
@@ -186,6 +192,7 @@ create_vpd_burden_map <- function(coi, ctry.sp, data){
       ratio >= 1.5 ~ "long"
     ))
 
+  #use helper function to calculate optimal point placement
   plot.data.ordered <- left_join(plot.data, ctry.shape.types, by = c("country_name" = "ctry")) |>
     group_by(country_name) |>
     arrange(vpd) |>
