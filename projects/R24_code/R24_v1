@@ -1,0 +1,96 @@
+# Author: Erin Goucher
+# 2/28/25
+#Global heat map that shows number of VPD outbreaks per country
+
+## Install dependencies
+required.packages <- c("tidyverse", "AzureStor","Microsoft365R", "readxl", "janitor","scales", "devtools","dplyr","stringr")
+packages.to.install <- setdiff(required.packages, installed.packages())
+if(length(packages.to.install) >0) install.packages(packages.to.install)
+
+# GID PEB SIR Team functions - use to read data from ADLS
+
+
+library(tidyverse)
+library(readxl)
+library(AzureStor)
+library(Microsoft365R)
+library(janitor)
+library(scales)
+library(ggplot2)
+library(ggrepel)  
+library(scales)   
+library(dplyr)
+library(stringr)
+
+
+# GID PEB SIR Team functions - use to read data from ADLS
+install.packages("devtools")
+library(devtools)
+devtools::install_github("nish-kishore/sirfunctions")
+
+# getwd()
+
+datt_task_id <- "R24"
+
+
+# Data set to read from ADLS
+data_outbreaks <- "data_clean/country_vpd_year_casedata.csv"
+data_outbreaks <- sirfunctions::edav_io(io = "read", 
+                                        default_dir = "GID/GIDMEA/giddatt", 
+                                        file_loc = data_outbreaks)
+
+ctry_shps <- "data_clean/ctry_shapes.rds"
+ctry_shps <- sirfunctions::edav_io(io = "read", 
+                                        default_dir = "GID/GIDMEA/giddatt", 
+                                        file_loc = ctry_shps)
+
+# Define the countries of interest 
+countries_of_interest <- c("Afghanistan", "Pakistan", "Nigeria", "Ethiopia", "Democratic Republic of the Congo", "Indonesia", "Philippines", "Brazil") 
+
+
+# Define the years of interest 
+years_of_interest <- c("2019", "2020", "2021", "2022", "2023") 
+
+# Filter the dataset for the years of interest
+data_outbreaks_CG_yr <- data_outbreaks_CG %>%
+  filter(year %in% years_of_interest)
+
+# Summarize the value column by country
+data_outbreaks_summary <- data_outbreaks %>%
+  group_by(country_name, iso3_code) %>%
+  summarize(total_value = sum(value, na.rm = TRUE), .groups = "drop")
+
+#Making map 
+# Compute label positions with significant offsets
+label_data <- map_data %>%
+  filter(country_name %in% countries_of_interest & !is.na(total_value)) %>%
+  mutate(centroid = st_centroid(geometry)) %>%
+  mutate(
+    centroid_long = st_coordinates(centroid)[,1],  # Store original centroid longitude
+    centroid_lat = st_coordinates(centroid)[,2],  # Store original centroid latitude
+    long = centroid_long + ifelse(centroid_long < 0, -10, 10),  # Move left in West, right in East
+    lat = centroid_lat + ifelse(centroid_lat > 0, 8, -8)  # Move up in North, down in South
+  )
+
+# Generate the global heatmap
+heatmap_plot <- ggplot() +
+  geom_sf(data = world_map, fill = "gray90", color = "white", size = 0.2) +  # Base world map
+  geom_sf(data = map_data %>% filter(!is.na(total_value)), 
+          aes(fill = total_value, geometry = geometry), color = "white", size = 0.3) +  
+  geom_sf(data = outline_data, fill = NA, color = "red", size = 0.7) +  # Red outline for countries of interest
+  scale_fill_viridis_c(option = "magma", name = "Total Outbreaks", na.value = "gray90") +  
+  geom_segment(data = label_data, 
+               aes(x = centroid_long, y = centroid_lat, xend = long, yend = lat), 
+               color = "red", size = 0.5) +  # Red leader lines from centroid to label
+  geom_label(data = label_data, 
+             aes(x = long, y = lat, label = country_name), 
+             size = 2.5, color = "white", fill = alpha("black", 0.7), 
+             fontface = "bold", label.size = 0) +  # Dark gray background, white text, offset outside boundaries
+  theme_minimal() +
+  labs(title = "Global Heat Map of Large and Disruptive VPD Outbreaks (2019-2023)",
+       subtitle = "Visualizing the total outbreaks per country") +
+  theme(axis.title.x = element_blank(),  
+        axis.title.y = element_blank())  
+
+# Print the heatmap
+print(heatmap_plot)
