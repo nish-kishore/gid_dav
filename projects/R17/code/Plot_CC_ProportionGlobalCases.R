@@ -151,7 +151,7 @@ ordered_vpd_levels <- rev(ordered_vpd_levels)
 ordered_vpd_levels <- factor(ordered_vpd_levels, levels = ordered_vpd_levels)
 
 # Update datasets to use vpd_short_name as a factor with specified levels
-data <- data %>% mutate(vpd_short_name = factor(vpd_short_name, levels = ordered_vpd_levels))
+data_all <- data %>% mutate(vpd_short_name = factor(vpd_short_name, levels = ordered_vpd_levels))
 fig_data <- fig_data %>% mutate(vpd_short_name = factor(vpd_short_name, levels = ordered_vpd_levels))
 fig2_data <- fig2_data %>% mutate(vpd_short_name = factor(vpd_short_name, levels = ordered_vpd_levels))
 fig3_data <- fig3_data %>% mutate(vpd_short_name = factor(vpd_short_name, levels = ordered_vpd_levels))
@@ -166,7 +166,7 @@ fig3_data <- fig3_data %>% mutate(vpd_short_name = factor(vpd_short_name, levels
 
 ##############################################################################
 ## Fig 1: VPD case counts
-data <- data # years separated by facet
+data <- data_all # years separated by facet
 plot_variable <- "cases"
 type <- "propbar" # horizontal bars
 # facet by year
@@ -273,6 +273,40 @@ fig3 <- data %>% filter(variable==plot_variable) %>%
 fig3
 fig3_name <- paste(datt_task_id,"fig3",type,year_range, plot_variable, "by","country","vpd", sep="_")
 ggsave(filename=paste0(datt_task_id,"/outputs/",fig3_name,".png"), fig3, width = 10, height = 8, dpi = 300)
+
+##############################################################################
+## Fig 4: VPD case counts for ONE VPD (e.g., measles)
+data <- data_all
+plot_variable <- "cases"
+type <- "propbar" # horizontal bars
+# facet by year
+#############################################################################
+fig4 <- data %>% filter(variable==plot_variable, year %in% plot_years)  %>%
+  ggplot(aes(x = year, y = proportion_of_global, fill = cc_cat)) +
+  geom_bar(stat="identity") +
+  coord_flip() + # Flip coordinates for horizontal bars
+  ggtitle("Proportion of Total Global VPD Cases in each Geography, by year", subtitle=paste0("GID Priority Countries (",year_range,")*")) +
+  xlab("Year") +
+  ylab("Proportion of Cases (%)") +
+  scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
+  labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
+       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, mumps, meningitis, JE, & CRS; 
+       in DRC for mumps, meningitis and JE; in IDN for typhoid and mumps; in PHL for YF, mumps, & CRS; in BRA for JE") +
+  scale_fill_manual(values=color_pal_9)+
+  guides(fill=guide_legend(title="Geography")) +
+  theme_bw() +
+  theme(plot.title=element_text(hjust=0.5, face="bold", size=20),
+        plot.caption = element_text(hjust = 1),
+        plot.subtitle=element_text(hjust=0.5, size=14),
+        axis.text.x = element_text(size=14),
+        axis.text.y = element_text(size=16),
+        axis.title.y = element_text(size=18),
+        axis.title.x = element_text(vjust=0.5,size=18))+
+  facet_wrap(~vpd_short_name)
+
+fig4
+fig4_name <- paste(datt_task_id,"fig4",type,year_range, plot_variable, "by", "year","country","vpd", sep="_")
+ggsave(filename=paste0(datt_task_id,"/outputs/",fig4_name,".png"), fig1, width = 12, height = 8, dpi = 300)
 
 
 ##############################################################################
