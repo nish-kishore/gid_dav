@@ -367,17 +367,29 @@ mpox_cases_ctry <- mpox_cases_ctry %>% left_join(
   by = "country_name_lower"
 )
 
-# reformat as date var & combine by year
+# reformat as date var & combine by year - cumulative so take max for year
 mpox_cases_ctry$year <- mpox_cases_ctry$Day %>% as.Date(format = "%m/%d/%Y") %>% year()
-mpox_cases_ctry_yr <- mpox_cases_ctry %>% group_by(iso3_code, year) %>% 
-  summarize(confirmed_cases = sum(`Total confirmed cases`, na.rm=TRUE),
-            suspected_cases = sum(`Total suspected cases`, na.rm=TRUE), # data discont Nov 2024
+
+mpox_cases_ctry_yr_cum <- mpox_cases_ctry %>% group_by(iso3_code, year) %>% 
+  summarize(cum_confirmed_cases = max(`Total confirmed cases`, na.rm=TRUE),
+           # cum_suspected_cases = ifelse(all(is.na(`Total suspected cases`)), NA, max(`Total suspected cases`, na.rm = TRUE)), # data discont Nov 2024 so handle missing
             .groups = 'drop'
             )
 
-mpox_cases_ctry_yr <- mpox_cases_ctry_yr %>% mutate(vpd="Mpox") %>% 
-  pivot_longer(c("confirmed_cases", "suspected_cases"),
-               names_to = "variable", values_to = "value")
+# recalculate total for specific year (so not cumulative across years)
+mpox_cases_ctry_yr <- mpox_cases_ctry_yr_cum %>% 
+  arrange(iso3_code, year) %>%  # Ensure data is sorted by iso3_code and year
+  group_by(iso3_code) %>%
+  mutate(
+    confirmed_cases = ifelse(year == min(year), 
+                             cum_confirmed_cases, 
+                             cum_confirmed_cases - lag(cum_confirmed_cases,
+                                                       default = first(cum_confirmed_cases)))
+  ) %>%
+  ungroup()
+
+mpox_cases_ctry_yr <- mpox_cases_ctry_yr %>% mutate(vpd="Mpox", variable="cases") %>% 
+  select(-cum_confirmed_cases) %>% rename(value=confirmed_cases)
   
 mpox_df <- mpox_cases_ctry_yr[ , order(names(mpox_cases_ctry_yr))]
 
