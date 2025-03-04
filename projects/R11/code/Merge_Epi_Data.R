@@ -1,16 +1,15 @@
+## DETAILS ###############################################################
 ## Combine data files imported from WHO
 # Updated 2025-02-21
 # Author: Lori Niehaus
 
-#######################################################################
-## PURPOSE:
+## PURPOSE ###############################################################
 ## Merge WHO case and IA2030 LoD outbreak data into one table
 ## Visualize VPD outbreaks/cases for GID 8 Critical Countries
 ## Note: imported data is from downloads (excel files) from data_raw folder in ADLS; need to change based on user
 
-#######################################################################
-## R SETUP
-#######################################################################
+## R SETUP ###########################################################################
+
 rm(list=ls()) # clear
 
 ## Install dependencies
@@ -34,11 +33,11 @@ library(sirfunctions)
 
 datt_task_id <- "R11"
 
-#######################################################################
-#### CONNECTIONS SET-UP
+#### CONNECTIONS SET-UP ######
 
-### Access to Task Team Teams Channel ("DATT")
-#######################################################################
+##### Access to MS Teams #######################################################################
+## Task Team Teams Channel ("DATT")
+
 dstt <- get_team("GHC_GID_Data_&_Strategy_Tiger_Team")
 dstt_channels <- dstt$list_channels()
 datt <- dstt$get_channel("Data Analytics Task Team")
@@ -65,18 +64,14 @@ teams_fig_files <- teams_fig_folder$list_files()
 
 #datt$send_message("ignore - testing connection from R to teams channel")
 
-#######################################################################
-#### CONNECTIONS SET-UP
-### Access to Task Team EDAV ADLS ("GIDMEA")
-#######################################################################
+##### Access to Task Team EDAV ADLS ("GIDMEA") ######################################
 # Use SIR function to access EDAV "/ddphsis-cgh/GID/GIDMEA/giddatt" blob container
 
 # list files in raw_data folder
 #sirfunctions::edav_io(io = "list", default_dir = "GID/GIDMEA/giddatt/data_raw")
 
-#######################################################################
-## UPLOAD & RESAVE REFERENCE DATA (from EDAV ADLS)
-#######################################################################
+
+## UPLOAD & RESAVE GID REFERENCE DATA (from EDAV ADLS) ####
 
 gid_ref_xls <- "C:/Users/tvf1/OneDrive - CDC/07_Projects/0. DATT/2025-02-21_GID_M&E_Data_Dictionary.xlsx"
 
@@ -97,12 +92,10 @@ sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_processing/vpd_ref.rds",
                       obj = vpd_ref)
 
-#######################################################################
-## UPLOAD & CLEAN PUBLIC WHO DATA SETS OF VPD CASES 1980-2003
-#######################################################################
+## WHO VPD OFFICIAL CNTRY CASE DATA 1980-2003 ################
+# UPLOAD & CLEAN
 
 ## Temporary - read from downloads folder, convert excels
-
 folder_path <- "C:/Users/tvf1/OneDrive - CDC/07_Projects/0. DATT/data_raw/"
 excel_files <- list.files(folder_path, pattern = ".xlsx")
 
@@ -158,15 +151,15 @@ sort(setdiff(unique(vpd_cases$country_name_lower),unique(country_ref$country_nam
 sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_processing/country_vpd_year_casedata.rds", obj = vpd_cases)
 
-############################################################################
-## UPLOAD & CLEAN PUBLIC IA2030 LARGE OR DISRUPTIVE OUTBREAK DATA (2018-2023)
-############################################################################
+
+## IA2030 LARGE OR DISRUPTIVE OUTBREAK DATA (2018-2023) ########################
+## UPLOAD & CLEAN PUBLIC 
 
 LoDpath <-"C:/Users/tvf1/OneDrive - CDC/07_Projects/0. DATT/IA2030_IG1.3_VPD LoD Outbreaks by country_2018-2023.xlsx"
 excel_sheets(LoDpath)
 outbreaks <- read_excel(paste0(LoDpath), sheet = "Historic Data (2018-2022)")
 
-## PART 1. EXTRACT HISTORIC DATA (2018-2022) FR0M SHEET
+### PART 1. HISTORIC DATA EXTRACTION (2018-2022) FR0M SHEET ####
 
 ## Clean
 names(outbreaks)
@@ -223,7 +216,8 @@ for (vpd in vpds) {
 
 # unique(df_complete$country_name)
 
-## PART 2. EXTRACT MOST RECENT REPORTING DATA (2023) FR0M ACROSS VPD SHEETS
+### PART 2. 2023 DATA EXTRACTION FR0M FR0M ACROSS VPD SHEETS ####
+# EXTRACT MOST RECENT REPORTING DATA (2023)
 
 # one sheet per vpd - first 4 rows give info; extra NA rows
 # excel_sheets(LoDpath)
@@ -312,8 +306,9 @@ sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_processing/country_vpd_year_lododata.rds", obj = lodos)
 
 
-#######################################################################
-## ADD ADDITIONAL ANTIGENS & YEARS (MPOX, C19, Cholera, MEASLES2024, POLIO2024)
+
+## CLEAN ADDL VPD CASE DATA ####
+# (MPOX, C19, Cholera, MEASLES2024, POLIO2024)
 
 vpd_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
                                    file_loc = "data_processing/country_vpd_year_casedata.rds")
@@ -326,9 +321,8 @@ vpd_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddat
 
 ## Clean each data set to have columns: iso3 year vpd variable value to prepare to merge with vpd_cases (long)
 
-#############################################################################
-## MPOX
-#############################################################################
+
+### MPOX #######################################################################
 
 mpox_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
                                    file_loc = "data_raw/mpox-cumulative-confirmed-and-suspected-cases-WHO-Ourworldindata.csv")
@@ -398,9 +392,8 @@ sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_processing/mpox-cntry-year-cases.rds",
                       obj=mpox_df)
 
-#############################################################################
-## CHOLERA
-#############################################################################
+### CHOLERA #######################################################################
+
 cholera_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
                                        file_loc = "data_raw/cholera-number-reported-cases.csv")
 
@@ -428,9 +421,7 @@ sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_processing/cholera-cntry-year-cases.rds",
                       obj=cholera_df)
 
-#############################################################################
-## COVID-19
-#############################################################################
+### COVID19 #######################################################################
 c19_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
                                    file_loc = "data_raw/COVID-19-global-data-cases-and-deaths_WHO.csv")
 
@@ -475,9 +466,8 @@ sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_processing/covid19-cntry-year-cases.rds",
                       obj=c19_df)
 
-#############################################################################
-## MEASLES - 2024
-#############################################################################
+
+### 2024 MEASLES ################################################################
 
 measles_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
                                     file_loc = "data_raw/Measles-cases-by-month-year-country.csv")
@@ -499,9 +489,7 @@ sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_processing/measles-cntry-2024-cases.rds",
                       obj=measles_df)
 
-#############################################################################
-## Polio - 2024
-#############################################################################
+### 2024 POLIO ################################################################
 
 # polio AFP detections in 2024 by country
 polio_2024cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
@@ -531,13 +519,15 @@ sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_processing/polio-cntry-2024-cases.rds",
                       obj=polio_df)
 
-#######################################################################
-## MERGE DATA SETS & SAVE AS CLEAN DATA SET
+
+## MERGE DATA SETS & SAVE CLEAN ################################################
+###First merge - IA2030 LoD, WHO Cases ##########################################
+
 ## 1. IA2030 large or disruptive outbreak counts: lodos
 ## 2. WHO VPD case counts: vpd_cases
 ## 3. GID country reference data: country_ref
 ## 4. GID vpd reference data: vpd_ref
-#######################################################################
+
 
 # Read data from processing folder
 lodos <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
@@ -644,9 +634,9 @@ case_counts_global <- wide_data_ref %>% group_by(year, vpd) %>%
 
 ## for PowerBI, need to change ROC variable so automaps correctly
 
-# add population data to country reference data
-ctry.pop <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
-                                  file_loc = "data_clean/ctry_pop.rds")
+# # add population data to country reference data
+# ctry.pop <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+#                                   file_loc = "data_clean/ctry_pop.rds")
 
 ## Create long data set using variable (epi var) and value
 long_data_ref <- wide_data_ref %>%
@@ -673,13 +663,13 @@ sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
 sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_clean/country_vpd_year_casedata.csv", obj = long_data_ref)
 
-# save as csv to be accessed in PowerBI
-sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
-                      file_loc = "data_clean/country_vpd_year_casedata.csv", obj = long_data_ref)
+# # save as csv to be accessed in PowerBI
+# sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
+#                       file_loc = "data_clean/country_vpd_year_casedata.csv", obj = long_data_ref)
 
-#######################################################################
-## ADD VPD CASE ADDITIONAL DATA - CHOLERA, COVID19, MPOX CASES; MEASLES & POLIO 2024 CASES
-#######################################################################
+###Second merge - Addtl VPD Cases ###############################################
+## CHOLERA, COVID19, MPOX CASES (Source: WHO); MEASLES & POLIO 2024 CASES
+
 rm(list=ls())
 
 # READ IN DATA CLEANED ABOVE
@@ -738,7 +728,7 @@ vpd_cases_ctry_yr_ref <-vpd_cases_ctry_yr_ref[,c(cols_first,
                                  setdiff(names(vpd_cases_ctry_yr_ref), cols_first)) # other cols
 ]
 
-
+### Save clean ctry-year-var-val dataset ###############################################
 # save to clean data folder as rds and csv files
 sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", 
                         file_loc = "data_clean/country_vpd_year_casedata.rds",
