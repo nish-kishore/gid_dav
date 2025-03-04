@@ -207,7 +207,7 @@ create_vpd_burden_map <- function(coi, ctry.sp, data){
     geom_sf(data = plot.data.ordered, aes(fill = vpd, size = value), color = "grey20", shape = 21) +
     geom_sf_text(data = plot.data.ordered, aes(label = vix_val), size = 2, fontface = "bold") +
     scale_size_continuous(
-      range = c(7,15), labels = scales::label_number(scale_cut = scales::cut_short_scale()),
+      range = c(5,15), labels = scales::label_number(scale_cut = scales::cut_short_scale()),
       breaks = c(100, 1000, 10000, 100000, 1000000)) +
     # scale_size_continuous(
     # range = c(5,8),
@@ -223,7 +223,8 @@ create_vpd_burden_map <- function(coi, ctry.sp, data){
     theme(panel.background = element_rect(fill = "lightblue"),
           panel.ontop = FALSE,
           legend.key = element_rect(fill = NA),
-          axis.title = element_blank())
+          axis.title = element_blank()) +
+    guides(fill = guide_legend(override.aes = list(size = 8)))
 
 
 }
