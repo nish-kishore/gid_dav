@@ -203,10 +203,11 @@ ggsave(filename=paste0(datt_task_id,"/outputs/",fig1_name,".png"), fig1, width =
 data <- fig2_data
 plot_variable <- "cases"
 type <- "propbar" # horizontal bars
+exclude_vpds <- c("Mumps")
 # NO FACET
 #############################################################################
 
-fig2 <- data %>% filter(variable==plot_variable) %>% 
+fig2 <- data %>% filter(variable==plot_variable, !vpd_short_name %in% exclude_vpds) %>% 
   ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat)) +
   geom_bar(stat="identity") +
   coord_flip() + # Flip coordinates for horizontal bars
