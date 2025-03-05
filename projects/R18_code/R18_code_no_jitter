@@ -1,0 +1,189 @@
+## Install dependencies
+required.packages <- c("tidyverse", "AzureStor","Microsoft365R", "readxl", "janitor","scales", "devtools","dplyr","stringr", "ggbeeswarm", "ggrepel")
+packages.to.install <- setdiff(required.packages, installed.packages())
+if(length(packages.to.install) >0) install.packages(packages.to.install)
+
+# GID PEB SIR Team functions - use to read data from ADLS
+
+
+library(tidyverse)
+library(readxl)
+library(AzureStor)
+library(Microsoft365R)
+library(janitor)
+library(scales)
+library(ggplot2)
+library(ggrepel)  
+library(scales)   
+library(dplyr)
+library(stringr)
+library(ggbeeswarm)
+library(ggrepel)
+
+# GID PEB SIR Team functions - use to read data from ADLS
+install.packages("devtools")
+library(devtools)
+devtools::install_github("nish-kishore/sirfunctions")
+
+# getwd()
+
+datt_task_id <- "R18"
+
+#######################################################################
+## READ INPUT DATA
+#######################################################################
+
+# Data set to read from ADLS
+data_ctr_pop <- "data_clean/ctry_pop.rds"
+data_ctr_pop <- sirfunctions::edav_io(io = "read", 
+                                      default_dir = "GID/GIDMEA/giddatt", 
+                                      file_loc = data_ctr_pop)
+
+data_trvlr <- "data_clean/traveler_outbound.rds" 
+data_trvlr <- sirfunctions::edav_io(io = "read", 
+                                    default_dir = "GID/GIDMEA/giddatt", 
+                                    file_loc = data_trvlr)
+
+
+data_cases <- "data_clean/tbl1_1980-2023_casecounts_by_country_vpd.csv" 
+data_cases <- sirfunctions::edav_io(io = "read",
+                                    default_dir = "GID/GIDMEA/giddatt", 
+                                    file_loc = data_cases)
+
+data_zd<- "data_clean/wuenic2023.rds" 
+data_zd<- sirfunctions::edav_io(io = "read",
+                                default_dir = "GID/GIDMEA/giddatt", 
+                                file_loc = data_zd)
+
+
+# Ensure `ADM0_NAME` in `data_ctr_pop` is formatted consistently to match `country_name` 
+data_ctr_pop <- data_ctr_pop %>% mutate(ADM0_NAME = str_to_title(tolower(ADM0_NAME))) 
+
+# Replace the specific value in the ADM0_NAME column 
+data_ctr_pop$ADM0_NAME <- ifelse(data_ctr_pop$ADM0_NAME == "Democratic Republic Of The Congo", "Democratic Republic of the Congo", data_ctr_pop$ADM0_NAME)
+
+# Summarize num_cases_WHOofficial for Measles by country and year (2019-2023)
+data_cases_summary <- data_cases %>%
+  filter(vpd == "Measles", year >= 2019 & year <= 2023) %>%
+  group_by(country_name, vpd, year) %>%  # Keeping vpd in the grouping
+  summarize(total_cases = sum(num_cases_WHOofficial, na.rm = TRUE))
+
+#Summarize totalpop, u5pop, and u15pop by country for 2019-2023, keeping ISO_3_CODE 
+data_ctr_pop_summary <- data_ctr_pop %>% filter(year >= 2019 & year <= 2023) %>% group_by(ISO_3_CODE, ADM0_NAME, year) %>% summarize( total_population = sum(totalpop, na.rm = TRUE), under5_population = sum(u5pop, na.rm = TRUE), under15_population = sum(u15pop, na.rm = TRUE) )
+
+#Summarize count for each country for years 2019-2023 
+data_trvlr_summary <- data_trvlr %>% filter(year >= 2019 & year <= 2023) %>% group_by(ctry, year) %>% summarize(total_travelers = sum(count, na.rm = TRUE))
+
+#Summarize n_miss for DTP1 by country for years 2019-2023 
+data_zd_summary <- data_zd %>% filter(vaccine == "DTP1", year >= 2019 & year <= 2023) %>% group_by(ctry, year) %>% summarize(missed_DTP1 = sum(n_miss, na.rm = TRUE))
+
+data_ctr_pop_summary <- data_ctr_pop_summary %>% mutate(ISO_3_CODE = ifelse(ISO_3_CODE == "COD", "DRC", ISO_3_CODE))
+
+# Join the datasets based on country and year while keeping all columns 
+final_summary <- data_cases_summary %>%
+  full_join(data_ctr_pop_summary, by = c("country_name" = "ADM0_NAME", "year")) %>%
+  full_join(data_trvlr_summary, by = c("country_name" = "ctry", "year")) %>%
+  full_join(data_zd_summary, by = c("country_name" = "ctry", "year"))
+
+final_summary_aggregated <- final_summary %>%
+  group_by(country_name, ISO_3_CODE) %>%
+  summarize(
+    total_cases = sum(total_cases, na.rm = TRUE),
+    total_population = sum(total_population, na.rm = TRUE),
+    under5_population = sum(under5_population, na.rm = TRUE),
+    under15_population = sum(under15_population, na.rm = TRUE),
+    total_travelers = sum(total_travelers, na.rm = TRUE),
+    missed_DTP1 = sum(missed_DTP1, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    zd_percentage_under_5 = (missed_DTP1 / under5_population),  # Compute proportion
+    zd_percentage_under_5 = ifelse(is.infinite(zd_percentage_under_5), NA, zd_percentage_under_5)  # Replace Inf with NA
+  ) 
+
+# Remove rows where zd_percentage_under_5, total_cases, or total_travelers are zero
+final_summary_aggregated <- final_summary_aggregated %>%
+  filter(zd_percentage_under_5 != 0, total_cases != 0, total_travelers != 0)
+
+#TESTING
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(scales)
+
+# Ensure clean_data has valid values
+clean_data <- final_summary_aggregated %>%
+  filter(!is.na(total_cases), !is.na(total_travelers), !is.na(zd_percentage_under_5)) %>%
+  mutate(
+    country_category = ifelse(ISO_3_CODE %in% names(priority_country_names), ISO_3_CODE, "Other Country"),
+    zd_percentage_rounded = round(zd_percentage_under_5, 5)
+  )
+
+# Dynamically set max limit for size scale
+max_zd_value <- max(clean_data$zd_percentage_under_5, na.rm = TRUE)
+
+# Define axis limits
+x_limits <- c(min(clean_data$total_travelers, na.rm = TRUE) * 0.9, 
+              max(clean_data$total_travelers, na.rm = TRUE) * 1.1)
+y_limits <- c(min(clean_data$total_cases, na.rm = TRUE) * 0.9, 
+              max(clean_data$total_cases, na.rm = TRUE) * 1.1)
+
+# Create the beeswarm plot (NO DATA LABELS)
+beeswarm_plot <- ggplot(clean_data, aes(x = total_travelers, y = total_cases, 
+                                        color = country_category, size = zd_percentage_rounded)) +
+  geom_point(
+    data = clean_data %>% filter(country_category == "Other Country"), 
+    aes(size = zd_percentage_rounded),  
+    color = "#afabab",  
+    alpha = 0.4, show.legend = FALSE  
+  ) +  
+  geom_point(
+    data = clean_data %>% filter(country_category != "Other Country"), 
+    aes(color = country_category, size = zd_percentage_rounded),  
+    alpha = 1, show.legend = TRUE
+  ) +
+  scale_x_log10(
+    labels = scales::comma_format(),
+    breaks = scales::trans_breaks("log10", function(x) 10^x)
+  ) +
+  scale_y_log10(
+    labels = scales::comma_format(),
+    breaks = scales::trans_breaks("log10", function(x) 10^x)
+  ) +
+  scale_size_continuous(
+    name = " % of Zero-Dose Children of Total Children <5 (%)",
+    range = c(5, 20),
+    limits = c(0, max_zd_value),
+    breaks = c(0, 0.02, 0.04, 0.06, 0.08, 0.10),
+    labels = c("0%", "2%", "4%", "6%", "8%", "10%"),
+    guide = guide_legend(
+      override.aes = list(size = c(6, 8, 10, 12, 15, 18))  # Make size legend bubbles bigger
+    )
+  ) +
+  scale_color_manual(
+    name = "Priority Countries",
+    values = color_pal_9,
+    labels = priority_country_names,
+    guide = guide_legend(
+      override.aes = list(size = 10)  # Make legend bubbles larger
+    )
+  ) +
+  coord_cartesian(xlim = x_limits, ylim = y_limits) +  # Keep points in bounds
+  labs(
+    x = "Total Travelers to the US",  
+    y = "Total Measles Cases",  
+    title = "Plot of Measles Cases vs. Travelers to the US by Country (2019-2023)\n(Bubble Size = % Zero-Dose Children <5)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = 12, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.position = "right",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
+# Print the updated plot
+print(beeswarm_plot)
