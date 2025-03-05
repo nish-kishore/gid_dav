@@ -2,9 +2,8 @@
 # Updated 2025-02-27
 # Author: Lori Niehaus / GID Data Analytics Task Team (DATT)
 
-#######################################################################
-## R SETUP
-#######################################################################
+## R SETUP ################################################################
+#
 rm(list=ls()) # clear
 
 ## Install dependencies
@@ -22,9 +21,8 @@ lapply(c("tidyverse", "readxl", "AzureStor", "Microsoft365R", "janitor", "scales
 # Data & Analytics Task Team ID
 datt_task_id <- "R17"
 
-############################################################################
-## IMPORT CLEAN DATA FROM ADLS
-############################################################################
+
+## IMPORT CLEAN DATA ################
 # sirfunctions::edav_io(io = "list", default_dir = "GID/GIDMEA/giddatt/data_clean")  # view list of clean data files in ADLS
 
 data_fi <- "data_clean/country_vpd_year_casedata.rds"
@@ -36,11 +34,10 @@ data <- data_clean
 #unique(data$vpd)
 #unique(data$variable)
 
-############################################################################
-## SET UP FOR FIGURES
-############################################################################
 
-# set color palettes
+## SET UP FOR FIGURES ##############
+
+### Set colors for fill variables ##########################################################################
 color_pal_9 <- c("#afabab","#A76DAB","#D76B6E","#334a54","#582d90", # Other Country, 8 GID CCs (individual)
                "#007B7A","#00a266","#D5006D","#a51d42")
 
@@ -68,6 +65,7 @@ names(color_pal_9) <- levels(data$cc_cat) # use color_pal_9[data$cc_cat] in figs
 data$cc_cat_bin = factor(data$cc_cat_bin, levels = rev(c("GID Critical Country", "Other Country")))
 names(color_pal_2) <- levels(data$cc_cat_bin) # use color_pal_2[data$cc_cat] in fig 3
 
+### Calculate global total ##########################################################################
 # Calculate global total value for each variable-vpd-year (total across all geos)
 global_totals <- data %>%
   group_by(year, vpd, variable) %>%
@@ -82,8 +80,9 @@ data <- data %>% left_join(global_totals, by=c("year","vpd","variable")) %>% # a
 data$vpd_short_name[data$vpd_short_name== "Tetanus (neonatal and/or non-neonatal)"] <- "Tetanus (all)" # value too long
 data$vpd_short_name[data$vpd_short_name== "CRS"] <- "Congenital Rubella Syndrome" # CRS abbrev. to be spelled out
 
-#####################################################################################################################
-### collapse data sets for figures 2 & 3 to combine VALUE across years (plot_year period)
+
+### Group data - A ##########################################################################
+## collapse data sets for figures 2 & 3 to combine VALUE across years (plot_year period)
 
 fig_data <- data %>% filter(year %in% plot_years) %>% 
   group_by(variable, vpd_short_name, country_abbrev, cc_cat, cc_cat_bin) %>% 
@@ -98,7 +97,7 @@ global_totals <- fig_data %>%
 fig_data <- fig_data %>% left_join(global_totals, by=c("vpd_short_name","variable")) %>% # add global totals as col
   mutate(proportion_of_global = cum_period_value / global_total_value * 100)
 
-#####################################################################################################################
+### Group data - B ##########################################################################
 ### collapse dataset by geographic categories  - for figure 3 to cc_bin
 
 fig3_data <- fig_data %>% 
@@ -120,7 +119,7 @@ fig3_data <- fig3_data %>%
          hjust_value = ifelse(cc_cat_bin == "GID Critical Country", -0.25, 1.5)) # Adjust hjust conditionally
 
 
-#####################################################################################################################
+### Group data - C ##########################################################################
 ### collapse dataset by geographic categories  - for figure 2 to cc
 fig2_data <- fig_data %>% 
   group_by(variable, vpd_short_name, cc_cat) %>% 
@@ -135,8 +134,8 @@ global_totals <- fig2_data %>%
 fig2_data <- fig2_data %>% left_join(global_totals, by=c("vpd_short_name","variable")) %>% # add global totals as col
   mutate(proportion_of_global = cum_period_value / global_total_value * 100)
 
-#####################################################################################################################
-# Update vpd_short_name as a factor with specified levels
+
+### Update vpd_short_name as factor ############################################
 
 # create vector for vpd as factor variable to organization x-axis from highest value to lowest value for cc proportion
 ordered_vpd_levels <- fig3_data %>%
@@ -158,19 +157,17 @@ fig3_data <- fig3_data %>% mutate(vpd_short_name = factor(vpd_short_name, levels
 
 #levels(fig_data$vpd_short_name) # confirm
 
-############################################################################
-## PLOT AND SAVE FIGURES
+
+## PLOT AND SAVE FIGURES ############################################################################
 # use vpd_short_name as x-var, proportion_of_global as y-var, and fill var based on desired figure
 # save figure using DATT naming conventions: dattid_fig#_type_year(s)_yvar_by_xvar1_xvar2_otherinfo.pn
-############################################################################
 
-##############################################################################
-## Fig 1: VPD case counts
+### Fig 1: VPD case counts ##############################################################################
 data <- data_all # years separated by facet
 plot_variable <- "cases"
 type <- "propbar" # horizontal bars
 # facet by year
-#############################################################################
+
 fig1 <- data %>% filter(variable==plot_variable, year %in% plot_years) %>% 
   ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat)) +
   geom_bar(stat="identity") +
@@ -198,14 +195,13 @@ fig1
 fig1_name <- paste(datt_task_id,"fig1",type,year_range, plot_variable, "by", "year","country","vpd", sep="_")
 ggsave(filename=paste0(datt_task_id,"/outputs/",fig1_name,".png"), fig1, width = 12, height = 8, dpi = 300)
 
-##############################################################################
-## Fig 2: VPD cumulative case counts over 6-year period, each CC separate as proportion of global
+
+### Fig 2: VPD cumulative case counts over 6-year period, each CC separate as proportion of global ##################
 data <- fig2_data
 plot_variable <- "cases"
 type <- "propbar" # horizontal bars
 exclude_vpds <- c("Mumps")
 # NO FACET
-#############################################################################
 
 fig2 <- data %>% filter(variable==plot_variable, !vpd_short_name %in% exclude_vpds) %>% 
   ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat)) +
@@ -234,13 +230,13 @@ fig2
 fig2_name <- paste(datt_task_id,"fig2",type,year_range, plot_variable, "by","country","vpd", sep="_")
 ggsave(filename=paste0(datt_task_id,"/outputs/",fig2_name,".png"), fig2, width = 10, height = 8, dpi = 300)
 
-##############################################################################
-## Fig 3: VPD cumulative case counts over 6-year period, all CCs combined together as proportion of global
+
+### Fig 3: VPD cumulative case counts over 6-year period, all CCs combined together as proportion of global ####
 data <- fig3_data
 plot_variable <- "cases"
 type <- "propbar" # horizontal bars
 # NO FACET
-#############################################################################
+
 fig3 <- data %>% filter(variable==plot_variable) %>% 
   ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat_bin)) +
   geom_bar(stat="identity") +
@@ -275,13 +271,13 @@ fig3
 fig3_name <- paste(datt_task_id,"fig3",type,year_range, plot_variable, "by","country","vpd", sep="_")
 ggsave(filename=paste0(datt_task_id,"/outputs/",fig3_name,".png"), fig3, width = 10, height = 8, dpi = 300)
 
-##############################################################################
-## Fig 4: VPD case counts for ONE VPD (e.g., measles)
+
+### Fig 4: VPD case counts for ONE VPD (e.g., measles) #######################
 data <- data_all
 plot_variable <- "cases"
 type <- "propbar" # horizontal bars
 # facet by year
-#############################################################################
+
 fig4 <- data %>% filter(variable==plot_variable, year %in% plot_years)  %>%
   ggplot(aes(x = year, y = proportion_of_global, fill = cc_cat)) +
   geom_bar(stat="identity") +
@@ -310,60 +306,10 @@ fig4_name <- paste(datt_task_id,"fig4",type,year_range, plot_variable, "by", "ye
 ggsave(filename=paste0(datt_task_id,"/outputs/",fig4_name,".png"), fig1, width = 12, height = 8, dpi = 300)
 
 
-##############################################################################
-## Summarize missing data to help interpretation of figures
-#############################################################################
-# Mening data starts in 2020; ETH has no data for mening in 2023 but still makes up over 50% cases
 
-## summarize missing info
-# missing NGA - typhoid, pertussis, mumps, meningitis, JE, CRS
-# missing DRC - mumps, meningitis, JE
-# missing ETH - mpox ## no cases!
-# missing IDN - typhoid, mumps
-# missing PHL - YF, polio (assume 0 cases), mumps, CRS
-# missing BRA - JE
-
-# test <- data %>% filter(variable=="cases") %>% select(iso3_code,year,vpd,value)
-# nrow(test) #67357
-# sum(is.na(test$value)) #0
-# 
-# all_combinations <- expand.grid(
-#   iso3_code = unique(data$iso3_code),
-#   year = unique(data$year),
-#   vpd = unique(data$vpd, stringsAsFactors = FALSE),
-#   variable = unique(data$variable, stringsAsFactors = FALSE)
-# )
-# 
-# # dataframe with missing values included as rows
-# complete_data <- all_combinations %>%
-#   left_join((data %>% select("iso3_code", "year", "vpd","variable","value")), 
-#              by = c("iso3_code", "year", "vpd","variable"))
-# 
-# sum(!is.na(complete_data$value)) == nrow(data) # confirm all original val rows still there
-# 
-# na_case_counts <- complete_data %>% filter(variable=="cases") %>% 
-#   group_by(iso3_code, year, vpd, variable) %>% 
-#   summarise(value=sum(value, na.rm=TRUE),na_count= sum(is.na(value))) %>%
-#   ungroup()
-# 
-# na_case_counts$value[na_case_counts$na_count==1] <- NA
-# 
-# na_case_counts_fig <- na_case_counts %>% 
-#   filter(iso3_code %in% c("AFG", "ETH", "NGA", "COD", "IDN", "PAK", "BRA", "PHL"),
-#          year %in% plot_years,
-#          na_count==1)
-# 
-# test = data %>% filter(
-#   iso3_code=="NGA",
-#   year %in% plot_years,
-#   variable=="cases") 
-# View(test)
-# test$vpd %>% unique()
-
-# #########################################################################
-# ## Write cleaned figs to Teams folder (once finals decided)
+# ## Write figs to Teams folder ###########################################
 # ### Access to Task Team Teams Channel ("DATT")
-#######################################################################
+
 # dstt <- get_team("GHC_GID_Data_&_Strategy_Tiger_Team")
 # dstt_channels <- dstt$list_channels()
 # datt <- dstt$get_channel("Data Analytics Task Team")
