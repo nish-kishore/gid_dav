@@ -218,7 +218,8 @@ create_vpd_burden_map <- function(coi, ctry.sp, data){
       fill = "VPD",
       size = "# cases",
       title = paste0("Burden of select vaccine preventable diseases (VPDs) in ", filter(ctry.sp, iso_a3 == coi) |> pull(admin), " and neighboring countries"),
-      subtitle = paste0("Cumulative cases between 2019-2024\nNeighboring countries include: ", neighboring.ctry$admin |> sort() |> paste0(collapse = ", "))
+      subtitle = paste0("Cumulative cases between 2019-2024\nNeighboring countries include: ", neighboring.ctry$admin |> sort() |> paste0(collapse = ", ")),
+      caption = "Bubbles are placed in sequence on the map and do not reflect actual locations of outbreaks"
     ) +
     theme(panel.background = element_rect(fill = "lightblue"),
           panel.ontop = FALSE,
