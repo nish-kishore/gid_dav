@@ -177,8 +177,8 @@ fig1 <- data %>% filter(variable==plot_variable, year %in% plot_years) %>%
   ylab("Proportion of Cases (%)") +
   scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
   labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
-       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, mumps, meningitis, JE, & CRS; 
-       in DRC for mumps, meningitis and JE; in IDN for typhoid and mumps; in PHL for YF, mumps, & CRS; in BRA for JE") +
+       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
+       in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
   scale_fill_manual(values=color_pal_9)+
   guides(fill=guide_legend(title="Geography")) +
   theme_bw() +
@@ -201,6 +201,7 @@ data <- fig2_data
 plot_variable <- "cases"
 type <- "propbar" # horizontal bars
 exclude_vpds <- c("Mumps")
+full_cntry_names <-c("Other Country", "Philippines","Pakistan","Nigeria","Indonesia","Ethiopia","Democratic Republic\nof the Congo", "Brazil", "Afghanistan")
 # NO FACET
 
 fig2 <- data %>% filter(variable==plot_variable, !vpd_short_name %in% exclude_vpds) %>% 
@@ -212,9 +213,9 @@ fig2 <- data %>% filter(variable==plot_variable, !vpd_short_name %in% exclude_vp
   ylab("Proportion of Cases (%)") +
   scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
   labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
-       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, mumps, meningitis, JE, & CRS; 
-       in DRC for mumps, meningitis and JE; in IDN for typhoid and mumps; in PHL for YF, mumps, & CRS; in BRA for JE") +
-  scale_fill_manual(values=color_pal_9)+
+       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
+       in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
+  scale_fill_manual(values=color_pal_9, labels=full_cntry_names)+
   guides(fill=guide_legend(title="Geography")) +
   theme_bw() +
   theme(plot.title=element_text(hjust=0.5, face="bold", size=20),
@@ -252,8 +253,8 @@ fig3 <- data %>% filter(variable==plot_variable) %>%
   ylab("Proportion of Cases (%)") +
   scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
   labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
-       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, mumps, meningitis, JE, & CRS; 
-       in DRC for mumps, meningitis and JE; in IDN for typhoid and mumps; in PHL for YF, mumps, & CRS; in BRA for JE") +
+       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
+       in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
   #scale_fill_viridis_d(option = "D")+
   scale_fill_manual(values=color_pal_2)+
   guides(fill=guide_legend(title="Geography")) +
@@ -287,8 +288,8 @@ fig4 <- data %>% filter(variable==plot_variable, year %in% plot_years)  %>%
   ylab("Proportion of Cases (%)") +
   scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
   labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
-       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, mumps, meningitis, JE, & CRS; 
-       in DRC for mumps, meningitis and JE; in IDN for typhoid and mumps; in PHL for YF, mumps, & CRS; in BRA for JE") +
+       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
+       in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
   scale_fill_manual(values=color_pal_9)+
   guides(fill=guide_legend(title="Geography")) +
   theme_bw() +
