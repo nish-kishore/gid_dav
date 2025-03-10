@@ -12,15 +12,15 @@ source("./reference/obx_packages_01.R", local = T)
     raw.data <- get_all_polio_data(size = "small")
   }
   
-
-# Get Sharepoint site 
-get_sharepoint_site(
-  site_url = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
-  tenant = Sys.getenv("CLIMICROSOFT365_TENANT", "common"),
-  app = Sys.getenv("CLIMICROSOFT365_AADAPPID"),
-  scopes = c("Group.ReadWrite.All", "Directory.Read.All", "Sites.ReadWrite.All",
-             "Sites.Manage.All"),
-  token = NULL)
+# 
+# # Get Sharepoint site 
+# get_sharepoint_site(
+#   site_url = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
+#   tenant = Sys.getenv("CLIMICROSOFT365_TENANT", "common"),
+#   app = Sys.getenv("CLIMICROSOFT365_AADAPPID"),
+#   scopes = c("Group.ReadWrite.All", "Directory.Read.All", "Sites.ReadWrite.All",
+#              "Sites.Manage.All"),
+#   token = NULL)
 
 # Load Data 
 data <- raw.data
@@ -49,15 +49,15 @@ emergence_group <- "WPV1"
 s_w1 <- paste0("W",as.character(epiweek(date_start)), sub="")
 w_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")
 
-# out_gif <- paste("./output/tiger/", emergence_group, "_", date_start, "_", date_end,".gif" , sep = "")
+out_gif <- paste("./output/tiger/", emergence_group, "_", date_start, "_", date_end,"v2.gif" , sep = "")
 
 
-# Output 
-datt_task_id <- "R3"
-sub_folder <- "3. Figures"
-fig_name <- paste("fig1_gif_wpv1_AFGPAK_",year(date_start),s_w1, "_",year(date_end), e_w1,"_", format(today(), "%y%m%d"),".gif", sep="")
-temp_path <- file.path(tempdir(), fig_name)
-sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
+# # Output 
+# datt_task_id <- "R3"
+# sub_folder <- "3. Figures"
+# fig_name <- paste("fig1_gif_wpv1_AFGPAK_",year(date_start),s_w1, "_",year(date_end), e_w1,"_", format(today(), "%y%m%d"),".gif", sep="")
+# temp_path <- file.path(tempdir(), fig_name)
+# sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
 
 
 create_emergence_group_gif <- function(
@@ -280,7 +280,7 @@ create_emergence_group_gif <- function(
   ## save to disk
   magick::image_write(
     image = img_animated,
-    path = temp_path
+    path = out_gif
   )
   cli::cli_process_done()
 }
@@ -294,11 +294,11 @@ create_emergence_group_gif(emergence_group = emergence_group,
                            include_env = include_env, 
                            cumulative_map = cumulative_map,
                            cumulative = cumulative, 
-                           out_gif = temp_path)
+                           out_gif = out_gif)
 
-upload_to_sharepoint(
-  file_to_upload = temp_path,  # Writes to temp directory 
-  sharepoint_file_loc = sp_path,
-  site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
-  drive = "Documents")
+# upload_to_sharepoint(
+#   file_to_upload = temp_path,  # Writes to temp directory 
+#   sharepoint_file_loc = sp_path,
+#   site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
+#   drive = "Documents")
 

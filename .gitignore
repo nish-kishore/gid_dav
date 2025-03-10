@@ -51,3 +51,5 @@ rsconnect/
 *.xlsx
 *.Rproj
 *.csv
+*.jpeg
+*.gif
