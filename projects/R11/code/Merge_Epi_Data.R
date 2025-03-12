@@ -21,86 +21,50 @@ if(length(packages.to.install) >0) install.packages(packages.to.install)
 devtools::install_github("nish-kishore/sirfunctions")
 # https://github.com/nish-kishore/sirfunctions
 
-library(tidyverse)
-library(readxl)
-library(AzureStor)
-library(Microsoft365R)
-library(janitor)
-library(scales)
-library(sirfunctions)
-
-# getwd()
+# load libraries
+lapply(c("tidyverse", "readxl", "AzureStor", "Microsoft365R", "janitor", "scales", "sirfunctions", "sf"), library, character.only = TRUE)
 
 datt_task_id <- "R11"
 
-#### CONNECTIONS SET-UP ######
-
-##### Access to MS Teams #######################################################################
-## Task Team Teams Channel ("DATT")
-
-dstt <- get_team("GHC_GID_Data_&_Strategy_Tiger_Team")
-dstt_channels <- dstt$list_channels()
-datt <- dstt$get_channel("Data Analytics Task Team")
-
-# get sharepoint site and default document library associated with team
-dstt_site <- dstt$get_sharepoint_site()
-
-datt_docs <- datt$get_folder()
-doc_path <- datt_docs$get_path() # "/Data%20Analytics%20Task%20Team"
-items <- datt_docs$list_items()
-
-teams_data_folder <- datt_docs$get_item("2. Datasets_clean")
-teams_data_files <- teams_data_folder$list_files()
-
-teams_fig_folder <- datt_docs$get_item("3. Figures")
-teams_fig_files <- teams_fig_folder$list_files()
-
-## Code for saving datasets or figures to DATT Team Channel
-
-# teams_data_folder$save_dataframe(df, "dataset_name.csv")
-# teams_fig_folder$upload(fig_name.png)
-
-## send message to DATT Team Channel
-
-#datt$send_message("ignore - testing connection from R to teams channel")
-
-##### Access to Task Team EDAV ADLS ("GIDMEA") ######################################
-# Use SIR function to access EDAV "/ddphsis-cgh/GID/GIDMEA/giddatt" blob container
-
-# list files in raw_data folder
-#sirfunctions::edav_io(io = "list", default_dir = "GID/GIDMEA/giddatt/data_raw")
-
-
-## UPLOAD & RESAVE GID REFERENCE DATA (from EDAV ADLS) ####
-
-gid_ref_xls <- "C:/Users/tvf1/OneDrive - CDC/07_Projects/0. DATT/2025-02-21_GID_M&E_Data_Dictionary.xlsx"
-
-# Merge with geo and vpd reference data
-vpd_ref <- read_xlsx(gid_ref_xls,
-                     sheet = "VPD Key") %>% clean_names() %>% as.data.frame()
-country_ref <- read_xlsx(gid_ref_xls,
-                         sheet = "Country Key") %>% clean_names() %>% as.data.frame()
+## read clean VPD and Country reference data
+# Data used for cleaning of country-year-vpd resolution datasets
+country_ref <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                      file_loc = "data_clean/ref_country.rds")
 
 country_ref$country_name_lower <- tolower(country_ref$country_name)
 
-# write reference data to processing folder
-sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
-                                   file_loc = "data_processing/country_ref.rds",
-                                   obj = country_ref)
 
-sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
-                      file_loc = "data_processing/vpd_ref.rds",
-                      obj = vpd_ref)
+vpd_ref <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
+                                     file_loc = "data_clean/ref_vpd.rds")
 
 ## WHO VPD OFFICIAL CNTRY CASE DATA 1980-2003 ################
-# UPLOAD & CLEAN
+#### Loop upload and pivot longer raw case datasets ####
 
 ## Temporary - read from downloads folder, convert excels
-folder_path <- "C:/Users/tvf1/OneDrive - CDC/07_Projects/0. DATT/data_raw/"
+# Download all WHO WIISE Case Data sets from ADLS raw into folder called "who_case_data"
+folder_path <- "C:/Users/tvf1/OneDrive - CDC/07_Projects/0. DATT/who_case_data/"
 excel_files <- list.files(folder_path, pattern = ".xlsx")
 
-# Initialize df
-vpd_cases <- data.frame()
+## file names in folder 'who_case_data' (also in ADLS raw:
+#CongenitalRubellaSyndrome_1980-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#Diphtheria_1980-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#InvasiveMeningococcalDisease_2018-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#JapaneseEncephalitis_2000-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#Measles_1980-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#Mumps_1980-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#Pertussis_1980-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#Poliomyelitis_1980-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#Rubella_1980-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#Tetanus_1980-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#Typhoid_2018-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+#YellowFever_1980-2023_reportedcases_by_country_WHOImmPortal_2025-02-07.xlsx
+
+## Example import using interactive explore_edav SIR function
+# who_reported_cases_mumps <- explore_edav("GID/GIDMEA/giddatt/data_raw")
+# who_reported_cases_mumps$Sheet1 %>% View()
+
+## all files have same wide data structure with years as column name, so loop through to clean/extract
+vpd_cases <- data.frame() # Initialize df
 
 for (file in excel_files) {
   # Read the first sheet named "Sheet1" for all WHO VPD case data sets (publicly available, 2023 official)
@@ -120,11 +84,9 @@ for (file in excel_files) {
    vpd_cases <- rbind(vpd_cases,df_long)
    
 }
+#### Clean col names and vals ####
 
-# Change col names and data types
-#head(vpd_cases)
 names(vpd_cases) <- c("country_name","vpd","year","num_cases_WHOofficial")
-
 vpd_cases$year <- as.numeric(vpd_cases$year)
 
 # remove commas from string values before converting to numeric
@@ -134,7 +96,7 @@ vpd_cases$num_cases_WHOofficial_numeric <- as.numeric(vpd_cases$num_cases_WHOoff
 if (any(is.na(vpd_cases$num_cases_WHOofficial_numeric))){
   coerced_vals <- vpd_cases$num_cases_WHOofficial[is.na(vpd_cases$num_cases_WHOofficial_numeric)]
 }
-unique(coerced_vals) # NAs (OK)
+#unique(coerced_vals) # NAs (OK)
 
 # drop string col
 vpd_cases <- vpd_cases %>% select(-"num_cases_WHOofficial") %>%
@@ -144,24 +106,26 @@ vpd_cases <- vpd_cases %>% select(-"num_cases_WHOofficial") %>%
 
 # Check geo values against ref data
 vpd_cases$country_name_lower <- tolower(vpd_cases$country_name)
-sort(setdiff(unique(vpd_cases$country_name_lower),unique(country_ref$country_name_lower)))
-# 0 - perfect match (makes sense because both WHO ref data from WIISEmart)
+# sort(setdiff(unique(vpd_cases$country_name_lower),unique(country_ref$country_name_lower)))
+## 0 - perfect match (makes sense because both WHO ref data from WIISEmart)
 
-# Write data to processing folder
+vpd_cases$source <- "WHO reported cases (JRF 2023 revision)"
+
+### Save processing data ####
+
 sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
-                      file_loc = "data_processing/country_vpd_year_casedata.rds", obj = vpd_cases)
+                      file_loc = "data_processing/country_vpd_year_WHOIVBJRF-casedata.rds",
+                      obj = vpd_cases)
 
 
 ## IA2030 LARGE OR DISRUPTIVE OUTBREAK DATA (2018-2023) ########################
 ## UPLOAD & CLEAN PUBLIC 
 
+### Extract 2018-2022 reported LODO data ####
 LoDpath <-"C:/Users/tvf1/OneDrive - CDC/07_Projects/0. DATT/IA2030_IG1.3_VPD LoD Outbreaks by country_2018-2023.xlsx"
 excel_sheets(LoDpath)
 outbreaks <- read_excel(paste0(LoDpath), sheet = "Historic Data (2018-2022)")
 
-### PART 1. HISTORIC DATA EXTRACTION (2018-2022) FR0M SHEET ####
-
-## Clean
 names(outbreaks)
 # cols 2-11 measles 2018-2022 (10 columns); col 12 is notes, can drop; col 13-22 WPV; col 23 drop; 24 starts cVDPV;
 # 35 cholera; 46 mening; 57 YF; 68 Ebola (78 notes, final drop)
@@ -216,10 +180,9 @@ for (vpd in vpds) {
 
 # unique(df_complete$country_name)
 
-### PART 2. 2023 DATA EXTRACTION FR0M FR0M ACROSS VPD SHEETS ####
-# EXTRACT MOST RECENT REPORTING DATA (2023)
+### Extract 2023 reported LODO data (2023) ####
 
-# one sheet per vpd - first 4 rows give info; extra NA rows
+# one sheet per vpd (sheet name = VPD) - first 4 rows give info; extra NA rows
 # excel_sheets(LoDpath)
 
 ## Clean country names (using ref data)
@@ -244,7 +207,7 @@ for (vpd in vpds_2023) {
   df_2023 <- rbind(df_2023, outbreaks_2023) # bind each VPD data set together
 }
 
-## PART 3. MERGE HISTORIC AND MOST RECENT DATA
+### Bind 2023 and historic datasets ####
 
 # use same VPD labels and keep 2023 measles incidence vals for future ref
 df_complete$incidence <- NA
@@ -260,7 +223,8 @@ df_2023 <- df_2023 %>% mutate(vpd = case_when(
 names(df_2023) == names(df_complete) # ALL TRUE
 df_complete <- rbind(df_complete, df_2023)
 
-## Clean Complete data set
+### Clean complete 2018-2023 LODO dataset ####
+
 # unique(df_complete$vpd)
 # unique(df_complete$year)
 # class(df_complete$year)
@@ -301,17 +265,18 @@ lodos <- df_complete %>% filter(!is.na(country_name_lower))
 
 lodos$data_source <- "ia2030_2024_lodos_reporting"
 
-# Write data to processing folder
+### Save processing data ####
+
 sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt",
                       file_loc = "data_processing/country_vpd_year_lododata.rds", obj = lodos)
 
 
-
-## CLEAN ADDL VPD CASE DATA ####
+# CLEAN ADDL VPD CASE DATA ####
 # (MPOX, C19, Cholera, MEASLES2024, POLIO2024)
 
+# case data cleaned above
 vpd_cases <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt",
-                                   file_loc = "data_processing/country_vpd_year_casedata.rds")
+                                   file_loc = "data_processing/country_vpd_year_WHOIVBJRF-casedata.rds")
 
 ## query list of missing by VPD
 # summary <- vpd_cases %>% filter(year==2023 & vpd=="Congenital rubella syndrome")%>%
