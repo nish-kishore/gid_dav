@@ -34,6 +34,7 @@ p1 <- raw.data$pos %>% filter(
                           dateonset <= end_date &
                           source %in% s_source &
                           measurement %in% virus_type)  %>%
+                       distinct(epid, measurement, .keep_all = T) %>%
                        mutate(
                          m_sub = case_when(
                            measurement == "WILD 1" ~ "WPV1",
@@ -45,41 +46,123 @@ p1 <- raw.data$pos %>% filter(
                            measurement == "cVDPV 3" ~ "cVDPV3"))
 
 
+# Add Overall Summary 
+
+t0 <- p1 %>%
+  group_by(place.admin.0, m_sub2) %>%
+  count() %>%
+  group_by(place.admin.0) %>%
+  count() %>%
+  ungroup() %>%
+  summarise("Affected Countries" = length(place.admin.0)) %>%
+  mutate("m_sub2" = "Overall")
+
+t0 <- p1 %>%
+  filter(source == "AFP") %>%
+  summarise("Total Cases" = n()) %>%
+  cbind(t0)
+
+t0 <- p1 %>%
+  filter(source == "ENV") %>%
+  summarise("Total ES Detections" = n()) %>%
+  cbind(t0)
+
+c0 <- p1 %>%
+  filter(
+    source == "AFP" &
+      report_date <= date_3b &
+      (report_date >= date_3a |
+         (report_date >= date_3a_a &
+            place.admin.0 %in% c("AFGHANISTAN", "PAKISTAN"))))
+if(nrow(c0) == 0){
+  t0 <- t0 %>%
+    mutate("New Cases" = 0)
+}else{
+  t0 <-  c0 %>%
+    summarise("New Cases" = n()) %>%
+    cbind(t0)
+}
+
+c0 <- p1 %>%
+  filter(
+    source == "ENV" &
+      report_date <= date_3b &
+      (report_date >= date_3a |
+         (report_date >= date_3a_a &
+            place.admin.0 %in% c("AFGHANISTAN", "PAKISTAN"))))
+if(nrow(c0) == 0){
+  t0 <- t0 %>%
+    mutate("New ES Detections" = 0)
+}else{
+  t0 <-  c0 %>%
+    summarise("New ES Detections" = n()) %>%
+    cbind(t0)
+}
 
 # Table 1:
 t1 <- p1 %>%
-       group_by(place.admin.0, m_sub) %>%
+       group_by(place.admin.0, m_sub2) %>%
        count() %>%
-       group_by(m_sub) %>%
+       group_by(m_sub2) %>%
        count() %>%
        rename("Affected Countries" = n)
 
 t1 <- p1 %>%
           filter(source == "AFP") %>%
-          group_by(m_sub) %>%
+          group_by(m_sub2) %>%
           count()%>%
           rename("Total Cases" = n) %>%
-          right_join(t1, ., by = "m_sub")
+          left_join(t1, ., by = "m_sub2")
 
 t1 <- p1 %>%
   filter(source == "ENV") %>%
-  group_by(m_sub) %>%
+  group_by(m_sub2) %>%
   count()%>%
   rename("Total ES Detections" = n)%>%
-  right_join(t1, ., by = "m_sub")
+  left_join(t1, ., by = "m_sub2")
 
 
-t1 <- p1 %>%
-       arrange(m_sub, dateonset) %>%
-       group_by(m_sub) %>%
-       summarise(
-         most_recent = last(dateonset)) %>%
-       rename("Most Recent Detection" = most_recent)%>%
-       right_join(t1, ., by = "m_sub") %>%
-       as.data.frame()
+c0 <- p1 %>%
+  filter(
+           source == "AFP" &
+           report_date <= date_3b &
+           (report_date >= date_3a |
+              (report_date >= date_3a_a &
+                 place.admin.0 %in% c("AFGHANISTAN", "PAKISTAN"))))
+if(nrow(c0) == 0){
+  t1 <- t1 %>%
+    mutate("New Cases" = 0)
+}else{
+  t1 <-  c0 %>%
+    group_by(m_sub2) %>%
+    count() %>%
+    rename("New Cases" = n) %>%
+    left_join(t1, ., by = "m_sub2")
+}
 
+c0 <- p1 %>%
+  filter(
+    source == "ENV" &
+      report_date <= date_3b &
+      (report_date >= date_3a |
+         (report_date >= date_3a_a &
+            place.admin.0 %in% c("AFGHANISTAN", "PAKISTAN"))))
+if(nrow(c0) == 0){
+  t1 <- t1 %>%
+    mutate("New ES Detections" = 0)
+}else{
+  t1 <-  c0 %>%
+    group_by(m_sub2) %>%
+    count() %>%
+    rename("New ES Detections" = n) %>%
+    left_join(t1, ., by = "m_sub2")
+    
+}
+
+t1 <- t1 %>% replace(is.na(.), 0)
+t1 <- bind_rows(t1, t0)
 assign(paste0("t1","_","overall_sum", sep = ""), t1 )
-rm(t1)
+rm(t1, t0)
 
 # Table 2 Code
 for (x in v2){
@@ -205,6 +288,127 @@ assign(paste0("t2","_",x, sep = ""), t2 )
 remove(t2)
 }
 
+# T2 Overall Table for Display 
+# Base for table
+t2_overall <- p1 %>%
+  group_by(place.admin.0, m_sub2) %>%
+  count() %>%
+  select(place.admin.0, m_sub2)
+
+# New AFP Cases
+c1 <- p1 %>%
+  filter(
+           source == "AFP" &
+           report_date <= date_3b &
+           (report_date >= date_3a |
+              (report_date >= date_3a_a &
+                 place.admin.0 %in% c("AFGHANISTAN", "PAKISTAN"))))
+
+if(nrow(c1) == 0){
+  t2_overall <- t2_overall %>%
+    mutate("New Cases" = 0)
+}else{
+  t2_overall <-  p1 %>%
+    filter(
+             source == "AFP" &
+             report_date <= date_3b &
+             (report_date >= date_3a |
+                (report_date >= date_3a_a &
+                   place.admin.0 %in% c("AFGHANISTAN", "PAKISTAN")))) %>%
+    group_by(place.admin.0, m_sub2) %>%
+    count() %>%
+    rename("New Cases" = n) %>%
+    left_join(t2_overall, ., by = c("place.admin.0", "m_sub2"))
+}
+
+# New ENV Cases
+c1 <- p1 %>%
+  filter(
+           source == "ENV" &
+           report_date <= date_3b &
+           (report_date >= date_3a |
+              (report_date >= date_3a_a &
+                 place.admin.0 %in% c("AFGHANISTAN", "PAKISTAN"))))
+
+if(nrow(c1) == 0){
+  t2_overall <- t2_overall %>%
+    mutate("New ES Detections" = 0)
+}else{
+  t2_overall <-  p1 %>%
+    filter(
+             source == "ENV" &
+             report_date <= date_3b &
+             (report_date >= date_3a |
+                (report_date >= date_3a_a &
+                   place.admin.0 %in% c("AFGHANISTAN", "PAKISTAN")))) %>%
+    group_by(place.admin.0, m_sub2) %>%
+    count() %>%
+    rename("New ES Detections" = n) %>%
+    left_join(t2_overall, ., by = c("place.admin.0", "m_sub2"))
+}
+
+# Add in total counts
+# New AFP Cases
+c1 <- p1 %>%
+  filter(
+           source == "AFP")
+
+
+if(nrow(c1) == 0){
+  t2_overall <- t2_overall %>%
+    mutate("Total Cases" = 0)
+}else{
+  t2_overall <-  p1 %>%
+    filter(
+             source == "AFP") %>%
+    group_by(place.admin.0, m_sub2) %>%
+    count() %>%
+    rename("Total Cases" = n) %>%
+    left_join(t2_overall, ., by = c("place.admin.0", "m_sub2"))
+}
+
+
+# ENV Counts 
+c1 <- p1 %>%
+  filter(
+           source == "ENV")
+
+
+if(nrow(c1) == 0){
+  t2_overall <- t2_overall %>%
+    mutate("Total ES Detections" = 0)
+}else{
+  t2_overall <-  p1 %>%
+    filter(
+             source == "ENV") %>%
+    group_by(place.admin.0, m_sub2) %>%
+    count() %>%
+    rename("Total ES Detections" = n) %>%
+    left_join(t2_overall, ., by = c("place.admin.0", "m_sub2"))
+}
+
+t2_overall <- t2_overall %>% replace(is.na(.), 0)
+
+t2_overall <- p1 %>%
+  arrange(place.admin.0, m_sub2, dateonset) %>%
+  group_by(place.admin.0, m_sub2) %>%
+  summarise(most_recent = last(dateonset)) %>%
+  rename("Most Recent" = most_recent) %>%
+  left_join(t2_overall, ., by = c("place.admin.0", "m_sub2")) %>%
+  arrange(desc(`Most Recent`)) %>%
+  rename("Virus Type" = m_sub2) %>%
+  select(place.admin.0, `New Cases`, `Total Cases`, `New ES Detections`, `Total ES Detections`, `Most Recent`) %>%
+  mutate(
+    place.admin.0 = str_to_title(place.admin.0),
+    place.admin.0 = case_when(
+      place.admin.0 == "Cote D Ivoire" ~ "Côte d'Ivoire",
+      place.admin.0 =="Democratic Republic Of The Congo" ~ "Democratic Republic of the Congo",
+      place.admin.0 =="Occupied Palestinian Territory, Including East Jerusalem" ~ "Palestinian Territories",
+      place.admin.0 =="Congo" ~ "Republic of the Congo",
+      TRUE ~ place.admin.0))
+
+
+
 # Map <- all AFP and ES Detections
 t3_map <-
      p1 %>%
@@ -242,6 +446,7 @@ t4_epi_es <- p1 %>%
 
 # Export
 dfs <- list("T1_PVOverall" = t1_overall_sum,
+            "T2_overall" = t2_overall,
             "T2_cVDPV1" = t2_cVDPV1,
             "T2_cVDPV2" = t2_cVDPV2,
             "T2_cVDPV3" = t2_cVDPV3,
