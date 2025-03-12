@@ -41,15 +41,19 @@ prov <- data$global.prov %>% filter(ADM0_NAME %in% c("AFGHANISTAN", "PAKISTAN"))
 
 # Load Inputs 
 include_env <- T
-cumulative <- F
+cumulative <- F #
 cumulative_map <- T
 date_start = as_date("2019-01-01")
-date_end = as_date("2019-03-31")
+date_end = as_date("2025-02-28")
 emergence_group <- "WPV1"
 s_w1 <- paste0("W",as.character(epiweek(date_start)), sub="")
 w_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")
 
-out_gif <- paste("./output/tiger/", emergence_group, "_", date_start, "_", date_end,"v2.gif" , sep = "")
+datt_task_id <- "R3"
+sub_folder <- "3. Figures"
+fig_name <- paste(emergence_group, "_", date_start, "_", date_end,".gif" , sep = "")
+out_gif <- file.path(tempdir(), fig_name)
+sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
 
 
 # # Output 
@@ -296,9 +300,10 @@ create_emergence_group_gif(emergence_group = emergence_group,
                            cumulative = cumulative, 
                            out_gif = out_gif)
 
-# upload_to_sharepoint(
-#   file_to_upload = temp_path,  # Writes to temp directory 
-#   sharepoint_file_loc = sp_path,
-#   site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
-#   drive = "Documents")
+
+upload_to_sharepoint(
+  file_to_upload = out_gif,  # Writes to temp directory
+  sharepoint_file_loc = sp_path,
+  site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
+  drive = "Documents")
 
