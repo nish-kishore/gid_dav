@@ -1,5 +1,11 @@
 ## Bar plots of all VPDs in GID Critical Counties - Cumulative of cases and large or disruptive outbreaks
-# Updated 2025-03-05
+# Updated 2025-03-10
+
+# Updates - 10 March 2025 
+# See code updates, switched local save path to the temp directory for each
+# Updated looping code to upload to sharepoint R12 folder 
+# Missing for Figure 6 - if this loop produces multiple figures then it will need to be updated below as well 
+
 # Author: Lori Niehaus / GID Data Analytics Task Team (DATT)
 
 # change x-var, y-var, and fill var based on desired figure
@@ -21,6 +27,7 @@ if(length(packages.to.install) >0) install.packages(packages.to.install)
 lapply(c("tidyverse", "readxl", "AzureStor", "Microsoft365R", "janitor", "scales", "sirfunctions"), library, character.only = TRUE)
 
 datt_task_id <- "R12"
+sub_folder <- "3. Figures"
 
 ## IMPORT CLEAN DATA ###########################################
 
@@ -115,8 +122,10 @@ fig1 <- data %>%
   facet_grid(rows=vars(vpd_short_name), scales = "free_y")
 
 fig1
-fig1_name <- paste(datt_task_id,"fig1",type,year_range, plot_variable, "by", "year","vpd","ccsonly", sep="_")
-ggsave(filename=paste0(datt_task_id,"/outputs/",fig1_name,".png"), fig1, width = 12, height = 8, dpi = 300)
+fig1_name <- paste("fig1",type,year_range, plot_variable, "by", "year","vpd","ccsonly.png", sep="_")
+temp_path1 <- file.path(tempdir(), fig1_name)
+
+ggsave(filename=temp_path1, width = 12, height = 8, dpi = 300)
 
 ### Fig 2: LoD outbreaks, facet CC ################
 plot_variable <- "lod_count"
@@ -154,8 +163,9 @@ fig2 <- data %>%
 #facet_grid(.~vpd)
 fig2
 
-fig2_name <- paste(datt_task_id,"fig2",type,year_range, plot_variable, "by","year","country","vpd", sep="_")
-ggsave(filename=paste0(datt_task_id,"/outputs/",fig2_name,".png"), fig2, width = 10, height = 8, dpi = 300)
+fig2_name <- paste("fig2",type,year_range, plot_variable, "by","year","country","vpd.png", sep="_")
+temp_path2 <- file.path(tempdir(), fig2_name)
+ggsave(filename=temp_path2, width = 10, height = 8, dpi = 300)
 
 
 ### Fig 3: LoD outbreaks (>=1) in all GID CCs, stacked VPD ################
@@ -186,8 +196,10 @@ fig3 <- data %>%
         axis.title.x = element_text(vjust=0.5,size=18))
 
 fig3
-fig3_name <- paste(datt_task_id,"fig3",type,year_range, plot_variable, "by","year","vpd", sep="_")
-ggsave(filename=paste0(datt_task_id,"/outputs/",fig3_name,".png"), fig3, width = 10, height = 8, dpi = 300)
+fig3_name <- paste("fig3",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
+temp_path3 <- file.path(tempdir(), fig3_name)
+ggsave(filename= temp_path3, width = 10, height = 8, dpi = 300)
+
 
 ### Fig 4: LoD outbreaks (>=1) in all GID CCs, stacked VPD ################
 plot_variable <- "lod_count_atleastone"
@@ -222,8 +234,9 @@ fig4 <- data %>%
         axis.title.x = element_text(vjust=0.5,size=12))
 
 fig4
-fig4_name <- paste(datt_task_id,"fig4",type,year_range, plot_variable, "by","year","vpd", sep="_")
-ggsave(filename=paste0(datt_task_id,"/outputs/",fig4_name,".png"), fig4, width = 10, height = 8, dpi = 300)
+fig4_name <- paste("fig4",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
+temp_path4 <- file.path(tempdir(), fig4_name)
+ggsave(filename=temp_path4,width = 10, height = 8, dpi = 300)
 
 
 ### Fig 5: LoD outbreaks (n) in all GID CCs, stacked VPD ################
@@ -257,8 +270,10 @@ fig5 <- data %>%
 
 fig5
 
-fig5_name <- paste(datt_task_id,"fig5",type,year_range, plot_variable, "by","year","vpd", sep="_")
-ggsave(filename=paste0(datt_task_id,"/outputs/",fig5_name,".png"), fig5, width = 10, height = 8, dpi = 300)
+fig5_name <- paste("fig5",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
+temp_path5 <- file.path(tempdir(), fig5_name)
+ggsave(filename=temp_path5, width = 10, height = 8, dpi = 300)
+
 
 
 ### Fig 6: LoD outbreaks (>=1) in all countried in region ###############
@@ -308,36 +323,28 @@ for (region in unique(data_grouped$gid_region_abbr)) {
           axis.title.x = element_text(vjust=0.5,size=12))
   
   fig6
-  fig6_name <- paste(datt_task_id,"fig6",region,type,year_range, plot_variable, "by","year","vpd", sep="_")
-  ggsave(filename=paste0(datt_task_id,"/outputs/",fig6_name,".png"), fig6, width = 10, height = 8, dpi = 300)
+  # fig6_name <- paste(datt_task_id,"fig6",region,type,year_range, plot_variable, "by","year","vpd", sep="_")
+  # ggsave(filename=paste0(datt_task_id,"/outputs/",fig6_name,".png"), fig6, width = 10, height = 8, dpi = 300)
 }
 ## Write figs to Teams#########################################################
 ### Access to Task Team Teams Channel ("DATT")
 
-figs_upload <- c(fig1_name,fig2_name,fig3_name,fig4_name,fig5_name,fig6_name)
+figs_upload <- c(fig1_name,fig2_name,fig3_name,fig4_name,fig5_name) # Taking out 6 
+temp_upload <- c(temp_path1,temp_path2,temp_path3,temp_path4,temp_path5) # Taking out 6 
+y <- length(figs_upload)
 
-for (n in 1:length(figs_upload)){
+for (n in 1:y){
+  temp_path <- paste0(temp_upload[n])
+  fig_name <- paste0(figs_upload[n])
+
+  sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
   
-  fig_name <- paste0(figs_upload[n],".png")
-  
-  file_path = paste(getwd(),datt_task_id, "outputs", fig_name, sep="/" ) # fig output in GitHub folder
-  
-  sp_path <- paste("./Data Analytics Task Team/","3. Figures/", datt_task_id,"/", sep ="") # save location in MS Teams folder
-  
-  temp_path <- file.path(tempdir(), fig_name)
-  
+
   upload_to_sharepoint(
-    file_to_upload = file_path,  
+    file_to_upload = temp_path,  
     sharepoint_file_loc = sp_path,
     site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
     drive = "Documents")
-  
-  upload_to_sharepoint(
-    file_to_upload = temp_path,  # Writes to temp directory 
-    sharepoint_file_loc = sp_path,
-    site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
-    drive = "Documents")
-  
 
 }
 

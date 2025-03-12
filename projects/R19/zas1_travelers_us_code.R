@@ -7,7 +7,7 @@
 
 # Load in Packages 
 source("./reference/obx_packages_01.R", local = T)
-
+library(ggarrow)
 # Load in Data 
 map_ref<- sirfunctions::edav_io(io = "read", file_loc = "Data/orpg/mapref.table.rds")
 
@@ -94,7 +94,7 @@ prov <- raw.data$global.prov %>% filter(ADM0_NAME %in% c("UNITED STATES OF AMERI
 
 prov2 <-raw.data$global.prov %>% filter(ADM0_NAME %in% c("UNITED STATES OF AMERICA")) 
 
-write_xlsx(prov2, path="USprovs.xlsx")
+# write_xlsx(prov2, path="USprovs.xlsx")
 
 zas2021 <- zas1 %>% 
              filter(dateonset >= d1 & 
@@ -111,6 +111,17 @@ zas_shape <- left_join(afro, zas2021_ctry, by = c("ADM0_NAME"="place.admin.0")) 
 
 zas2021_cases <- zas2021 %>% 
   filter(source == "AFP")
+
+# Create maps 
+nh_data <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/traveler_outbound.rds")
+
+nh1 <- nh_data %>%
+  filter(year == 2023) %>%
+  mutate(ctry = str_to_upper(ctry),
+         ctry2 = case_when(
+           ctry == "IVORY COAST" ~  "COTE D IVOIRE",
+           ctry == "UNITED KINGDOM" ~ "THE UNITED KINGDOM",
+           TRUE ~ ctry))
 
 zas_shape2 <- left_join(zas_shape,nh1, by = c("ADM0_NAME"="ctry"))  
 zas_shape2 <- zas_shape2 %>% 

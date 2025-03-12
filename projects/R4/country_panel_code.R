@@ -3,7 +3,7 @@
 library(sirfunctions)
 source("./reference/obx_packages_01.R", local = T)
 
-
+raw.data <- get_all_polio_data(size = "small")  
 data <- read_excel("./special_projects/obx_unit/orpg_monthly_update/who_obdashboard_250225.xlsx")
 
 # Runs Locally off of the GPEI polio outbreak table 
@@ -48,9 +48,13 @@ datt_task_id <- "R4"
 sub_folder <- "3. Figures"
 
 # with table 
-fig_name2 <- paste("pv_ctry_panel",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
-temp_path2 <- file.path(tempdir(), fig_name2)
-sp_path2 <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name2, sep ="")
+e_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")
+fig_name <- paste("pv_ctry_panel",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
+temp_path <- file.path(tempdir(), fig_name)
+sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
+
+
+
 
 
 ctry <- ctry %>%
