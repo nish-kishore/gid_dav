@@ -10,7 +10,7 @@ vpd.case.data <- sirfunctions::edav_io(io = "read", default_dir = NULL, file_loc
 
 #county shapes, filter to 2025 to keep maps consistent
 ctry.shapes <- load_clean_ctry_sp(type = "long") |>
-  select(WHO_REGION, ADM0_NAME, STARTDATE, ENDDATE, active.year.01) |>
+  select(WHO_REGION, ADM0_NAME, CENTER_LON, CENTER_LAT, active.year.01) |>
   filter(active.year.01 == 2025)
 
 #subset all vpd to measles cases, fixing names to conform with shapes
@@ -30,21 +30,8 @@ mr.data <- read_excel("reference/mr_import_01_24.xlsx")
   
 #prepping data for mapping
 ctry.mr.data <- left_join(mr.data, ctry.shapes, by = c("country" = "ADM0_NAME")) |>
-  mutate(
-    mr_im_01_24_cat = case_when(
-      mr_im_01_24 == 1 ~ "1",
-      mr_im_01_24 >1 & 
-        mr_im_01_24 <= 10 ~ "2-10",
-      mr_im_01_24 >10 & 
-        mr_im_01_24 <= 25 ~ "11-25",
-      mr_im_01_24 >25 & 
-        mr_im_01_24 <= 50 ~ "26-50",
-      mr_im_01_24 >50 & 
-        mr_im_01_24 <= 100 ~ "51-100",
-      mr_im_01_24 >100 ~ ">100"),
-    mr_im_01_24_cat = factor(mr_im_01_24_cat, 
-                             levels = c("1", "2-10", "11-25", "26-50", "51-100", ">100")))
-
+  filter(!is.na(CENTER_LON))
+  
 #calculate sum for years specified by country and join to shapes
 measles.18.19 <- measles.cases |>
   filter(year %in% c("2018", "2019")) |>
@@ -53,13 +40,55 @@ measles.18.19 <- measles.cases |>
   mutate(value = sum(value)) |>
   ungroup() |>
   unique() |>
-  left_join(ctry.shapes, by = c("country" = "ADM0_NAME"))
+  left_join(ctry.shapes, by = c("country" = "ADM0_NAME")) |>
+  left_join(mr.data, by = c("country")) |>
+  group_by(who_region) |>
+  mutate(region_imports_13_24 = sum(mr_im_13_24, na.rm = T)) |>
+  ungroup()
 
+importations.region <- measles.18.19 |>
+  select(who_region, region_imports_13_24) |>
+  unique() |>
+  mutate(CENTER_LAT = case_when(who_region == "AFRO" ~ 15.00, 
+                                who_region == "AMRO" ~ -15.00, 
+                                who_region == "EMRO" ~ 30.00, 
+                                who_region == "EURO" ~ 50.00,
+                                who_region == "SEARO" ~ 23.00,
+                                who_region == "WPRO" ~ 36.00), 
+         CENTER_LON = case_when(who_region == "AFRO" ~ 20.00, 
+                                who_region == "AMRO" ~ -55.00, 
+                                who_region == "EMRO" ~ 42.00, 
+                                who_region == "EURO" ~ 20.00, 
+                                who_region == "SEARO" ~ 80.00, 
+                                who_region == "WPRO" ~ 100.00))
 
-map1 <- ggplot(data = measles.18.19$Shape) +
+US_CENTER_LON <- ctry.shapes |>
+  filter(ADM0_NAME == "UNITED STATES OF AMERICA") |>
+  pull(CENTER_LON)
+US_CENTER_LAT <- ctry.shapes |>
+  filter(ADM0_NAME == "UNITED STATES OF AMERICA") |>
+  pull(CENTER_LAT)
+
+ggplot(data = measles.18.19$Shape) +
   geom_sf(aes(fill = measles.18.19$value)) +
+  geom_sf_text(aes(label = measles.18.19$mr_im_13_24)) +
+  scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") 
+
+ggplot(data = measles.18.19$Shape) +
+  geom_sf(aes(fill = measles.18.19$value)) +
+  geom_sf_text(aes(label = measles.18.19$mr_im_13_24)) +
+  scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
+  geom_arrow_curve(data = importations.region , aes(x = CENTER_LON, y = CENTER_LAT, 
+                                     xend = US_CENTER_LON, yend = US_CENTER_LAT, 
+                                     linewidth = region_imports_13_24), 
+                   mid_place = 1, col = "black", curvature = .3,
+                   lineend = "square") +
+  theme_bw()
+
+ggplot(data = measles.18.19$Shape) +
+  geom_sf(aes(fill = measles.18.19$mr_im_13_24)) +
+  geom_sf_text(aes(label = measles.18.19$mr_im_13_24)) + 
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   theme_bw()
-  
  
   
