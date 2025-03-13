@@ -124,7 +124,7 @@ fig1 <- cc_data %>%
   facet_grid(rows=vars(vpd_short_name), scales = "free_y")
 
 fig1
-fig1_name <- paste("fig1",type,year_range, plot_variable, "by", "year","vpd","ccsonly.png", sep="_")
+fig1_name <- paste(datt_task_id,"fig1",type,year_range, plot_variable, "by", "year","vpd","ccsonly.png", sep="_")
 temp_path1 <- file.path(tempdir(), fig1_name)
 
 ggsave(filename=temp_path1, width = 12, height = 8, dpi = 300)
@@ -159,12 +159,12 @@ fig2 <- cc_data %>%
   facet_grid(rows=vars(country_abbrev))
 fig2
 
-fig2_name <- paste("fig2",type,year_range, plot_variable, "by","year","country","vpd.png", sep="_")
+fig2_name <- paste(datt_task_id,"fig2",type,year_range, plot_variable, "by","year","country","vpd.png", sep="_")
 temp_path2 <- file.path(tempdir(), fig2_name)
 ggsave(filename=temp_path2, width = 10, height = 8, dpi = 300)
 
 
-### Fig 3: LoD outbreaks (n) in all GID CCs, stacked VPD ################
+### Fig 3A: LoD outbreaks (n) in all GID CCs, stacked VPD ################
 plot_variable <- "lod_count"
 type <- "stackedbar"
 # no facet (don't disaggregate by country)
@@ -172,7 +172,7 @@ type <- "stackedbar"
 total_allvpd_lodos_dat <- cc_data %>% filter(variable==plot_variable & vpd %in% plot_vpds_ia2030outbreak)# use in subtitle
 total <- sum(total_allvpd_lodos_dat$value, na.rm=TRUE)
 
-fig3 <- cc_data %>% 
+fig3A <- cc_data %>% 
   filter(vpd %in% plot_vpds_ia2030outbreak & variable==plot_variable) %>% 
   ggplot(aes(x=year, y=value, fill=vpd_short_name))+
   geom_bar(stat="identity", position="dodge")+
@@ -182,7 +182,7 @@ fig3 <- cc_data %>%
                  subtitle="Select VPDs in Afghanistan, Brazil, Democratic Republic of the Congo,\nEthiopia, Indonesia, Nigeria, Pakistan, and the Philippines.")+
   xlab("Year")+
   ylab("Number of outbreaks")+
-  labs(caption="Note: Definition of 'large or disruptive' varies by VPD. WPV and cVDPV (any type) are counted\nas separate outbreaks. Maximum number of outbreaks any country could have in six-year\nperiod is 36 if WPV is excluded.")+
+  labs(caption="Note: Definition of 'large or disruptive' varies by VPD. WPV and cVDPV (any type) are counted as separate outbreaks. Maximum number of outbreaks any country could have in\nsix-year period is 36 if WPV is excluded and reaching the threshold for 'large or disruptive' is only counted once for each VPD in the same country and year.")+
   scale_y_continuous(labels = number_format(accuracy = 1)) + 
   guides(fill=guide_legend(title="VPD"))+
   scale_fill_manual(values=color_pal_vpds)+
@@ -195,11 +195,46 @@ fig3 <- cc_data %>%
         axis.title.y = element_text(size=18),
         axis.title.x = element_text(vjust=0.5,size=18))
 
-fig3
-fig3_name <- paste("fig3",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
-temp_path3 <- file.path(tempdir(), fig3_name)
-ggsave(filename= temp_path3, width = 10, height = 8, dpi = 300)
+fig3A
+fig3A_name <- paste(datt_task_id,"fig3A",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
+temp_path3A <- file.path(tempdir(), fig3A_name)
+ggsave(filename= temp_path3A, width = 10, height = 8, dpi = 300)
 
+### Fig 3B: LoD outbreaks (n) in all GID CCs, stacked VPD ################
+plot_variable <- "lod_count_atleastone"
+type <- "stackedbar"
+# no facet (don't disaggregate by country)
+
+total_allvpd_lodos_dat <- cc_data %>% filter(variable==plot_variable & vpd %in% plot_vpds_ia2030outbreak)# use in subtitle
+total <- sum(total_allvpd_lodos_dat$value, na.rm=TRUE)
+
+fig3B <- cc_data %>% 
+  filter(vpd %in% plot_vpds_ia2030outbreak & variable==plot_variable) %>% 
+  ggplot(aes(x=year, y=value, fill=vpd_short_name))+
+  geom_bar(stat="identity", position="dodge")+
+  geom_col()+
+  #geom_text(aes(label = paste(format(round(Projection_Grand_Total/1e6, 1), trim=TRUE),"M"))) +
+  ggtitle(paste0("Large or Disruptive VPD Outbreaks from ", year_range,"\n in GID Priority Countries, N=", total),
+          subtitle="Select VPDs in Afghanistan, Brazil, Democratic Republic of the Congo,\nEthiopia, Indonesia, Nigeria, Pakistan, and the Philippines.")+
+  xlab("Year")+
+  ylab("Number of outbreaks")+
+  labs(caption="Note: A country is considered to have 'large or disruptive outbreaks' if VPD-specific size criteria met at least once within each country and year.\n The maximum number of outbreaks possible within time period is 36 per country.")+
+  scale_y_continuous(labels = number_format(accuracy = 1)) + 
+  guides(fill=guide_legend(title="VPD"))+
+  scale_fill_manual(values=color_pal_vpds)+
+  theme_bw()+
+  theme(plot.title=element_text(hjust=0.5, face="bold",size=20),
+        plot.subtitle=element_text(hjust=0.5, size=14, face="italic"),
+        plot.caption = element_text(hjust=0, vjust=-.5, size=14),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1,size=14),
+        axis.text.y = element_text(size=12),
+        axis.title.y = element_text(size=18),
+        axis.title.x = element_text(vjust=0.5,size=18))
+
+fig3B
+fig3B_name <- paste(datt_task_id,"fig3B",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
+temp_path3B <- file.path(tempdir(), fig3B_name)
+ggsave(filename= temp_path3B, width = 10, height = 8, dpi = 300)
 
 ### Fig 4: LoD outbreaks (>=1) in all GID CCs, stacked VPD ################
 plot_variable <- "lod_count_atleastone"
@@ -233,7 +268,7 @@ fig4 <- cc_data %>%
         axis.title.x = element_text(vjust=0.5,size=12))
 
 fig4
-fig4_name <- paste("fig4",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
+fig4_name <- paste(datt_task_id,"fig4",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
 temp_path4 <- file.path(tempdir(), fig4_name)
 ggsave(filename=temp_path4,width = 10, height = 8, dpi = 300)
 
@@ -265,7 +300,7 @@ fig5 <- cc_data %>%
 
 fig5
 
-fig5_name <- paste("fig5",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
+fig5_name <- paste(datt_task_id,"fig5",type,year_range, plot_variable, "by","year","vpd.png", sep="_")
 temp_path5 <- file.path(tempdir(), fig5_name)
 ggsave(filename=temp_path5, width = 10, height = 8, dpi = 300)
 
@@ -275,6 +310,10 @@ ggsave(filename=temp_path5, width = 10, height = 8, dpi = 300)
 plot_variable <- "lod_count_atleastone"
 type <- "stackedbar"
 # no facet (not years)
+
+# Initialize empty list to store temp paths in for loop
+temp_paths6 <- list()
+fig6_names <- list()
 
 data_grouped <- data_clean %>% filter(year %in% plot_years, variable==plot_variable) %>% 
   group_by(gid_region_abbr,country_abbrev, vpd_short_name) %>% summarise(value= sum(value), na.rm=TRUE)
@@ -287,7 +326,6 @@ data_grouped <- data_clean %>% filter(year %in% plot_years, variable==plot_varia
 # data_grouped %>% filter(vpd_short_name=="Polio", value ==6 ) %>% head()
 
 # for each region:
-
 for (region in unique(data_grouped$gid_region_abbr)) {
 
   fig6 <- data_grouped %>% filter(!(is.na(vpd_short_name)) & gid_region_abbr==region) %>% # drop cVDPV", "WPV"
@@ -318,11 +356,18 @@ for (region in unique(data_grouped$gid_region_abbr)) {
           axis.title.x = element_text(vjust=0.5,size=12))
   
   fig6
-  # fig6_name <- paste(datt_task_id,"fig6",region,type,year_range, plot_variable, "by","year","vpd", sep="_")
-  # ggsave(filename=paste0(datt_task_id,"/outputs/",fig6_name,".png"), fig6, width = 10, height = 8, dpi = 300)
-}
+  fig6_name <- paste(datt_task_id,"fig6",region,type,year_range, plot_variable, "by","year","vpd", sep="_")
+  ggsave(filename=paste0(datt_task_id,"/outputs/",fig6_name,".png"), fig6, width = 10, height = 8, dpi = 300)
 
-### Fig 7: LoD outbreaks maps ###############
+  temp_path6 <- file.path(tempdir(), paste0(fig6_name,".png"))
+  
+  fig6_names[[region]] <- fig6_name
+  temp_paths6[[region]] <- temp_path6
+  ggsave(filename=temp_path6, plot = fig6, width = 10, height = 8, dpi = 300)
+  
+  }
+
+### Fig 7: Measles LoD outbreaks maps ###############
 plot_variable <- "lod_count_atleastone"
 type <- "stackedbar"
 # no facet (not years)
@@ -461,8 +506,20 @@ labels <- sapply(breaks[-1], create_range_labels)
 ## Write figs to Teams#########################################################
 ### Access to Task Team Teams Channel ("DATT")
 
-figs_upload <- c(fig1_name,fig2_name,fig3_name,fig4_name,fig5_name) # Taking out 6 
-temp_upload <- c(temp_path1,temp_path2,temp_path3,temp_path4,temp_path5) # Taking out 6 
+# get fig 6 names from region loop
+  temp_path6_all <- c() # initialize
+  fig6_names_all <- c()
+  
+  for (n in 1:6) {
+    path = temp_paths6[n] %>% as.character()
+    temp_path6_all <- temp_path6_all %>% append(path)
+    
+    fig_name = fig6_names[n] %>% as.character()
+    fig6_names_all <- fig6_names_all %>% append(fig_name)
+  }
+  
+figs_upload <- c(fig1_name,fig2_name,fig3A_name,fig3B_name, fig4_name,fig5_name, fig6_names_all)  
+temp_upload <- c(temp_path1,temp_path2,temp_path3A,temp_path3B,temp_path4,temp_path5, temp_path6_all)
 y <- length(figs_upload)
 
 for (n in 1:y){
@@ -479,25 +536,4 @@ for (n in 1:y){
     drive = "Documents")
 
 }
-
-# dstt <- get_team("GHC_GID_Data_&_Strategy_Tiger_Team")
-# dstt_channels <- dstt$list_channels()
-# datt <- dstt$get_channel("Data Analytics Task Team")
-# 
-# # get sharepoint site and default document library associated with team
-# dstt_site <- dstt$get_sharepoint_site()
-# 
-# datt_docs <- datt$get_folder()
-# doc_path <- datt_docs$get_path() # "/Data%20Analytics%20Task%20Team"
-# items <- datt_docs$list_items()
-# 
-# teams_data_folder <- datt_docs$get_item("2. Datasets_clean")
-# teams_data_files <- teams_data_folder$list_files()
-# 
-# teams_fig_folder <- datt_docs$get_item("3. Figures")
-# teams_fig_files <- teams_fig_folder$list_files()
-# 
-# ## Save figure 4 to Teams (update if want to save others)
-# filename = paste0(datt_task_id,"/outputs/",fig_name,".png")
-# teams_fig_folder$upload(paste0(filename))
 
