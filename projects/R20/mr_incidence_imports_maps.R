@@ -16,4 +16,11 @@ measles.cases <- vpd.case.data |>
 mr_data <- read_excel("reference/mr_import_01_24.xlsx")
 
 #county shapes
-ctry.shapes <- edav_io(io = "read", default_dir = NULL, file_loc = "GID/GIDMEA/giddatt/data_clean/ctry_shapes.rds")
+ctry.shapes <- load_clean_ctry_sp(type = "long") |>
+  select(WHO_REGION, ADM0_NAME, STARTDATE, ENDDATE, active.year.01)
+
+#prepping data for mapping
+mr_data <- left_join(mr_data, ctry.shapes, by = c("country" = "ADM0_NAME"))
+
+measles.18.19 <- measles.cases |>
+  filter(year %in% c("2018", "2019"))
