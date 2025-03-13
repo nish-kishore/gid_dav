@@ -99,7 +99,7 @@ left_join(ctry.sp, data |> filter(year == 2023), by = c("admin" = "ctry")) |>
 left_join(ctry.sp, data |> filter(year == 2023, !ctry %in% c("Mexico", "Canada")), by = c("admin" = "ctry")) |>
   ggplot() +
   geom_sf(aes(fill = count)) +
-  geom_sf(data = ctry.sp |> filter(!is.na(gid_priority)), color = "red", fill = NA, size = 1.1) +
+  geom_sf(data = ctry.sp |> filter(!is.na(gid_priority)), color = "red", fill = NA, linewidth = 0.5) +
   scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
   theme_bw() +
   labs(fill = "# travelers", title = "Number of non-US citizen travelers entering the USA in 2023 by country of origin (not including Mexico and Canada)",

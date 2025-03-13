@@ -50,6 +50,7 @@ p0 <- raw.data$pos %>% filter(
     dateonset <= end_date &
     source %in% s_source &
     measurement %in% virus_type)  %>%
+  distinct(epid, measurement, .keep_all = T) %>%
   mutate(
     m_sub = case_when(
       measurement == "WILD 1" ~ "WPV1",
