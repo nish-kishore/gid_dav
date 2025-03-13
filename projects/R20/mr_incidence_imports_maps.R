@@ -26,10 +26,24 @@ measles.cases <- vpd.case.data |>
                              .default = country)) 
 
 #mr import data
-mr_data <- read_excel("reference/mr_import_01_24.xlsx")
+mr.data <- read_excel("reference/mr_import_01_24.xlsx")
   
 #prepping data for mapping
-mr_data <- left_join(mr_data, ctry.shapes, by = c("country" = "ADM0_NAME"))
+ctry.mr.data <- left_join(mr.data, ctry.shapes, by = c("country" = "ADM0_NAME")) |>
+  mutate(
+    mr_im_01_24_cat = case_when(
+      mr_im_01_24 == 1 ~ "1",
+      mr_im_01_24 >1 & 
+        mr_im_01_24 <= 10 ~ "2-10",
+      mr_im_01_24 >10 & 
+        mr_im_01_24 <= 25 ~ "11-25",
+      mr_im_01_24 >25 & 
+        mr_im_01_24 <= 50 ~ "26-50",
+      mr_im_01_24 >50 & 
+        mr_im_01_24 <= 100 ~ "51-100",
+      mr_im_01_24 >100 ~ ">100"),
+    mr_im_01_24_cat = factor(mr_im_01_24_cat, 
+                             levels = c("1", "2-10", "11-25", "26-50", "51-100", ">100")))
 
 #calculate sum for years specified by country and join to shapes
 measles.18.19 <- measles.cases |>
@@ -39,4 +53,13 @@ measles.18.19 <- measles.cases |>
   mutate(value = sum(value)) |>
   ungroup() |>
   unique() |>
+  left_join(ctry.shapes, by = c("country" = "ADM0_NAME"))
+
+
+map1 <- ggplot(data = measles.18.19$Shape) +
+  geom_sf(aes(fill = measles.18.19$value)) +
+  scale_fill_viridis_c(trans = scales::log10_trans(), labels = scales::comma, option = "cividis") +
+  theme_bw()
+  
+ 
   
