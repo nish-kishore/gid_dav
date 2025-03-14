@@ -43,7 +43,8 @@ measles.18.19 <- measles.cases |>
   left_join(ctry.shapes, by = c("country" = "ADM0_NAME")) |>
   left_join(mr.data, by = c("country")) |>
   group_by(who_region) |>
-  mutate(region_imports_13_24 = sum(mr_im_13_24, na.rm = T)) |>
+  mutate(region_imports_13_24 = sum(mr_im_13_24, na.rm = T),
+         mr_im_13_24 = ifelse(mr_im_13_24 == 0, NA, mr_im_13_24)) |>
   ungroup()
 
 importations.region <- measles.18.19 |>
