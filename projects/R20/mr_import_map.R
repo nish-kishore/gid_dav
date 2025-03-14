@@ -76,7 +76,7 @@ out2 <- mr_sub %>%
                   top_lat = first(CENTER_LAT))
                   
 
-write_xlsx(out2, path = "./output/mr_ctry_v2.xlsx")
+# write_xlsx(out2, path = "./output/mr_ctry_v2.xlsx")
 mr_ctry_250305 <- read_excel("output/mr_ctry_250305.xlsx")
 
 arrow1 <- mr_sub %>% 
@@ -119,7 +119,7 @@ arrow1 <- mr_sub %>%
 map <- ggplot2::ggplot() +
   ggplot2::geom_sf(data = ctry_mr,  fill = "#FFFFFF") +
   ggplot2::geom_sf(data = mr_sub , aes(fill = mr_im_01_24_cat), color = "grey20", lwd = 0.4) +
-  scale_fill_brewer(name= "No. of Measles\nImportations\nto the USA:\n('01-'24)" , palette = "GnBu") +
+  scale_fill_brewer(name= "No. of Measle\nImportations\nto the USA:\n('01-'24)" , palette = "GnBu") +
   geom_arrow_curve(data=arrow1 , aes(x = top_long, y = top_lat, 
                                                             xend = US_CENTER_LON, yend = US_CENTER_LAT), 
                    mid_place = 1, col = "black", size = 1, curvature = .3,
