@@ -20,7 +20,7 @@ lapply(c("tidyverse", "readxl", "AzureStor", "Microsoft365R", "janitor", "scales
 
 # Data & Analytics Task Team ID
 datt_task_id <- "R17"
-
+sub_folder <- "3. Figures"
 
 ## IMPORT CLEAN DATA ################
 # sirfunctions::edav_io(io = "list", default_dir = "GID/GIDMEA/giddatt/data_clean")  # view list of clean data files in ADLS
@@ -192,11 +192,13 @@ fig1 <- data %>% filter(variable==plot_variable, year %in% plot_years) %>%
  facet_wrap(~year)
 
 fig1
-fig1_name <- paste(datt_task_id,"fig1",type,year_range, plot_variable, "by", "year","country","vpd", sep="_")
-ggsave(filename=paste0(datt_task_id,"/outputs/",fig1_name,".png"), fig1, width = 12, height = 8, dpi = 300)
+fig1_name <- paste(datt_task_id,"fig1",type,year_range, plot_variable, "by", "year","country","vpd.png", sep="_")
+ggsave(filename=paste0(datt_task_id,"/outputs/",fig1_name), fig1, width = 12, height = 8, dpi = 300)
 
+temp_path1 <- file.path(tempdir(), fig1_name)
+ggsave(filename=temp_path1, width = 12, height = 8, dpi = 300)
 
-### Fig 2: VPD cumulative case counts over 6-year period, each CC separate as proportion of global ##################
+### Fig 2A: VPD cumulative case counts over 6-year period, each CC separate as proportion of global ##################
 data <- fig2_data
 plot_variable <- "cases"
 type <- "propbar" # horizontal bars
@@ -204,73 +206,169 @@ exclude_vpds <- c("Mumps")
 full_cntry_names <-c("Other Country", "Philippines","Pakistan","Nigeria","Indonesia","Ethiopia","Democratic Republic\nof the Congo", "Brazil", "Afghanistan")
 # NO FACET
 
-fig2 <- data %>% filter(variable==plot_variable, !vpd_short_name %in% exclude_vpds) %>% 
+fig2A <- data %>% filter(variable==plot_variable, !vpd_short_name %in% exclude_vpds) %>% 
   ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat)) +
   geom_bar(stat="identity") +
   coord_flip() + # Flip coordinates for horizontal bars
-  ggtitle("Proportion of Total Global VPD Cases\nin GID Priority Countries", subtitle=paste0("Cumulative cases between ",year_range,"*")) +
+  ggtitle("Proportion of Total Global VPD Cases\nin GID Priority Countries", 
+          subtitle=paste0("Reported cumulative cases between ",year_range,"*")) +
   xlab("Vaccine-Preventable Disease") +
   ylab("Proportion of Cases (%)") +
   scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
   labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
-       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
+       Note: VPD case estimates are based on available surveillance data reported by countries and may underestimate\ntrue burden in some countries. Reported case data is not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
        in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
   scale_fill_manual(values=color_pal_9, labels=full_cntry_names)+
   guides(fill=guide_legend(title="Geography")) +
   theme_bw() +
   theme(plot.title=element_text(hjust=0.5, face="bold", size=20),
-        plot.caption = element_text(hjust = 1),
+        plot.caption = element_text(hjust = 0),
         plot.subtitle=element_text(hjust=0.5, size=14),
         axis.text.x = element_text(size=14),
         axis.text.y = element_text(size=16),
         axis.title.y = element_text(size=18),
         axis.title.x = element_text(vjust=0.5,size=18))
-  #facet_wrap(~year) # Facet by Year
 
-fig2
-fig2_name <- paste(datt_task_id,"fig2",type,year_range, plot_variable, "by","country","vpd", sep="_")
-ggsave(filename=paste0(datt_task_id,"/outputs/",fig2_name,".png"), fig2, width = 10, height = 8, dpi = 300)
+fig2A
+fig2A_name <- paste(datt_task_id,"fig2A",type,year_range, plot_variable, "by","country","vpd.png", sep="_")
+ggsave(filename=paste0(datt_task_id,"/outputs/",fig2A_name,".png"), fig2A, width = 10, height = 8, dpi = 300)
+
+temp_path2A <- file.path(tempdir(), fig2A_name)
+ggsave(filename=temp_path2A, width = 12, height = 8, dpi = 300)
 
 
-### Fig 3: VPD cumulative case counts over 6-year period, all CCs combined together as proportion of global ####
+### Fig 2B: VPD cumulative case counts over 6-year period, each CC separate as proportion of global ##################
+
+## Alternate version including only VPDs where >=50% of cases in GID Priority Countries
+temp <- fig3_data %>% mutate(highpropvpd = case_when(
+  (cc_cat_bin=="GID Critical Country" & proportion_of_global>=49.5) ~ "Yes",
+  TRUE ~ "No")
+) %>% filter(highpropvpd=="Yes")
+
+
+data <- fig2_data
+plot_variable <- "cases"
+type <- "propbar" # horizontal bars
+exclude_vpds <- c("Mumps", setdiff(unique(fig2_data$vpd_short_name),temp$vpd_short_name))
+full_cntry_names <-c("Other Country", "Philippines","Pakistan","Nigeria","Indonesia","Ethiopia","Democratic Republic\nof the Congo", "Brazil", "Afghanistan")
+# NO FACET
+
+
+fig2B <- data %>% filter(variable==plot_variable, !vpd_short_name %in% exclude_vpds) %>% 
+  ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat)) +
+  geom_bar(stat="identity") +
+  coord_flip() + # Flip coordinates for horizontal bars
+  ggtitle("Proportion of Total Global VPD Cases\nin GID Priority Countries", 
+          subtitle=paste0("Reported cumulative cases between ",year_range,"*")) +
+  xlab("Vaccine-Preventable Disease") +
+  ylab("Proportion of Cases (%)") +
+  scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
+  labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
+       Note: VPD case estimates are based on available surveillance data reported by countries and may underestimate\ntrue burden in some countries. Reported case data is not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
+       in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
+  scale_fill_manual(values=color_pal_9, labels=full_cntry_names)+
+  guides(fill=guide_legend(title="Geography")) +
+  theme_bw() +
+  theme(plot.title=element_text(hjust=0.5, face="bold", size=20),
+        plot.caption = element_text(hjust = 0),
+        plot.subtitle=element_text(hjust=0.5, size=14),
+        axis.text.x = element_text(size=14),
+        axis.text.y = element_text(size=16),
+        axis.title.y = element_text(size=18),
+        axis.title.x = element_text(vjust=0.5,size=18))
+
+fig2B
+fig2B_name <- paste(datt_task_id,"fig2B",type,year_range, plot_variable, "by","country","vpd.png", sep="_")
+ggsave(filename=paste0(datt_task_id,"/outputs/",fig2B_name,".png"), fig2B, width = 10, height = 8, dpi = 300)
+
+temp_path2B <- file.path(tempdir(), fig2B_name)
+ggsave(filename=temp_path2B, width = 12, height = 8, dpi = 300)
+
+### Fig 3A: VPD cumulative case counts over 6-year period, all CCs combined together as proportion of global ####
 data <- fig3_data
 plot_variable <- "cases"
 type <- "propbar" # horizontal bars
 # NO FACET
 
-fig3 <- data %>% filter(variable==plot_variable) %>% 
+fig3A <- data %>% filter(variable==plot_variable) %>% 
   ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat_bin)) +
   geom_bar(stat="identity") +
   geom_col() +
-  geom_text(aes(label = paste0(round(proportion_of_global), "%"),
+  geom_text(aes(label = ifelse(cc_cat_bin == "GID Critical Country", paste0(round(proportion_of_global), "%"), ""),
                 y = label_y,
                 hjust = hjust_value),
             vjust = .25,
-            colour = "white") +
+            colour = "white") + # Only show text for GID Critical Countries
   coord_flip() + # Flip coordinates for horizontal bars
-  ggtitle("Proportion of Total Global VPD Cases\nin GID Priority Countries", subtitle=paste0("Cumulative cases between ",year_range,"*")) +
+  ggtitle("Proportion of Total Global VPD Cases\nin GID Priority Countries", 
+          subtitle=paste0("Reported cumulative cases between ", year_range, "*")) +
   xlab("Vaccine-Preventable Disease") +
   ylab("Proportion of Cases (%)") +
   scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
   labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
-       Note: VPD case-based surveillance data not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
+       Note: VPD case estimates are based on available surveillance data reported by countries and may underestimate\ntrue burden in some countries. Reported case data is not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
        in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
-  #scale_fill_viridis_d(option = "D")+
   scale_fill_manual(values=color_pal_2)+
   guides(fill=guide_legend(title="Geography")) +
   theme_bw() +
   theme(plot.title=element_text(hjust=0.5, face="bold", size=20), # hjust centers title
-        plot.caption = element_text(hjust = 1),
+        plot.caption = element_text(hjust = 0),
         plot.subtitle=element_text(hjust=0.5, size=14),
         axis.text.x = element_text(size=14),
         axis.text.y = element_text(size=16),
         axis.title.y = element_text(size=18),
         axis.title.x = element_text(vjust=0.5,size=18))
-#facet_wrap(~year) # Facet by Year
 
-fig3
-fig3_name <- paste(datt_task_id,"fig3",type,year_range, plot_variable, "by","country","vpd", sep="_")
-ggsave(filename=paste0(datt_task_id,"/outputs/",fig3_name,".png"), fig3, width = 10, height = 8, dpi = 300)
+fig3A
+fig3A_name <- paste(datt_task_id,"fig3A",type,year_range, plot_variable, "by","country","vpd.png", sep="_")
+ggsave(filename=paste0(datt_task_id,"/outputs/",fig3A_name,".png"), fig3A, width = 10, height = 8, dpi = 300)
+
+temp_path3A <- file.path(tempdir(), fig3A_name)
+ggsave(filename=temp_path3A, width = 12, height = 8, dpi = 300)
+
+
+### Fig 3B: VPD cumulative case counts over 6-year period, all CCs combined together as proportion of global ####
+data <- fig3_data
+plot_variable <- "cases"
+exclude_vpds <- c("Mumps", setdiff(unique(fig2_data$vpd_short_name),temp$vpd_short_name))
+type <- "propbar" # horizontal bars
+# NO FACET
+
+fig3B <- data %>% filter(variable==plot_variable, !(vpd_short_name %in% exclude_vpds)) %>% 
+  ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat_bin)) +
+  geom_bar(stat="identity") +
+  geom_col() +
+  geom_text(aes(label = ifelse(cc_cat_bin == "GID Critical Country", paste0(round(proportion_of_global), "%"), ""),
+                y = label_y,
+                hjust = hjust_value),
+            vjust = .25,
+            colour = "white") + # Only show text for GID Critical Countries
+  coord_flip() + # Flip coordinates for horizontal bars
+  ggtitle("Proportion of Total Global VPD Cases\nin GID Priority Countries", 
+          subtitle=paste0("Reported cumulative cases between ", year_range, "*")) +
+  xlab("Vaccine-Preventable Disease") +
+  ylab("Proportion of Cases (%)") +
+  scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
+  labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
+       Note: VPD case estimates are based on available surveillance data reported by countries and may underestimate\ntrue burden in some countries. Reported case data is not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
+       in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
+  scale_fill_manual(values=color_pal_2)+
+  guides(fill=guide_legend(title="Geography")) +
+  theme_bw() +
+  theme(plot.title=element_text(hjust=0.5, face="bold", size=20), # hjust centers title
+        plot.caption = element_text(hjust = 0),
+        plot.subtitle=element_text(hjust=0.5, size=14),
+        axis.text.x = element_text(size=14),
+        axis.text.y = element_text(size=16),
+        axis.title.y = element_text(size=18),
+        axis.title.x = element_text(vjust=0.5,size=18))
+
+fig3B
+fig3B_name <- paste(datt_task_id,"fig3B",type,year_range, plot_variable, "by","country","vpd.png", sep="_")
+ggsave(filename=paste0(datt_task_id,"/outputs/",fig3B_name,".png"), fig3B, width = 10, height = 8, dpi = 300)
+
+temp_path3B <- file.path(tempdir(), fig3B_name)
+ggsave(filename=temp_path3B, width = 12, height = 8, dpi = 300)
 
 
 ### Fig 4: VPD case counts for ONE VPD (e.g., measles) #######################
@@ -303,46 +401,32 @@ fig4 <- data %>% filter(variable==plot_variable, year %in% plot_years)  %>%
   facet_wrap(~vpd_short_name)
 
 fig4
-fig4_name <- paste(datt_task_id,"fig4",type,year_range, plot_variable, "by", "year","country","vpd", sep="_")
+fig4_name <- paste(datt_task_id,"fig4",type,year_range, plot_variable, "by", "year","country","vpd.png", sep="_")
 ggsave(filename=paste0(datt_task_id,"/outputs/",fig4_name,".png"), fig1, width = 12, height = 8, dpi = 300)
 
+temp_path4 <- file.path(tempdir(), fig4_name)
+ggsave(filename=temp_path4, width = 12, height = 8, dpi = 300)
 
 
-# ## Write figs to Teams folder ###########################################
-# ### Access to Task Team Teams Channel ("DATT")
 
-# dstt <- get_team("GHC_GID_Data_&_Strategy_Tiger_Team")
-# dstt_channels <- dstt$list_channels()
-# datt <- dstt$get_channel("Data Analytics Task Team")
-# 
-# # get sharepoint site and default document library associated with team
-# dstt_site <- dstt$get_sharepoint_site()
-# 
-# datt_docs <- datt$get_folder()
-# doc_path <- datt_docs$get_path() # "/Data%20Analytics%20Task%20Team"
-# items <- datt_docs$list_items()
-# 
-# teams_data_folder <- datt_docs$get_item("2. Datasets_clean")
-# teams_data_files <- teams_data_folder$list_files()
-# 
-# teams_fig_folder <- datt_docs$get_item("3. Figures")
-# teams_fig_files <- teams_fig_folder$list_files()
-# 
-# ## Save figure 4 to Teams (update if want to save others)
-# filename = paste0(datt_task_id,"/outputs/",fig_name,".png")
-# teams_fig_folder$upload(paste0(filename))
-# # 
-# # # Create Task Folder 
-# sub_folder <- "3. Figures"
-# 
-# # # Use in ggsave to save to temp file directory 
-# temp_path <- file.path(tempdir(), fig2_name)
-# 
-# # # Pathway to write for sharepoint. Needs to have same figure name, will create folders to make pathway 
-# sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig2_name, sep ="")
-# 
-# upload_to_sharepoint(
-#   file_to_upload = temp_path,  # Writes to temp directory
-#   sharepoint_file_loc = sp_path,
-#   site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
-#   drive = "Documents")
+## Write figs to Teams#########################################################
+### Access to Task Team Teams Channel ("DATT")
+
+figs_upload <- c(fig1_name,fig2A_name,fig2B_name,fig3A_name,fig3B_name, fig4_name)  
+temp_upload <- c(temp_path1,temp_path2A,temp_path2B,temp_path3A,temp_path3B,temp_path4)
+y <- length(figs_upload)
+
+for (n in 1:y){
+  temp_path <- paste0(temp_upload[n])
+  fig_name <- paste0(figs_upload[n])
+  
+  sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
+  
+  
+  upload_to_sharepoint(
+    file_to_upload = temp_path,  
+    sharepoint_file_loc = sp_path,
+    site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
+    drive = "Documents")
+  
+}
