@@ -17,7 +17,7 @@ if (exists("raw.data") == TRUE){
 }else{
   raw.data <- get_all_polio_data(size = "small")
 }
-
+date_end <- floor_date(raw.data$metadata$download_time, "week", week_start = 1) %m+% days(1)
 e_w <- paste0("W",as.character(epiweek(date_end)),",", sub="")
 e_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")
 
@@ -30,7 +30,7 @@ sub_folder <- "3. Figures"
 
 # Figure Type 
 # "2b1, "3p_w"
-f_type <- "2b1"
+f_type <- "3p_w"
 # Output options: 
 
 # 2b1 option 
@@ -123,7 +123,7 @@ nh1 <- nh_data %>%
            ctry == "UNITED KINGDOM" ~ "THE UNITED KINGDOM",
            TRUE ~ ctry))
 
-zas_shape2 <- left_join(zas_shape,nh1, by = c("ADM0_NAME"="ctry"))  
+zas_shape2 <- left_join(zas_shape,nh1, by = c("ADM0_NAME"="ctry2"))  
 zas_shape2 <- zas_shape2 %>% 
   mutate(
     count_cat = case_when(
@@ -181,7 +181,7 @@ zas_shape23 <- left_join(afro2, zas2023_ctry, by = c("ADM0_NAME"="place.admin.0"
 zas2023_cases <- zas2023 %>% 
   filter(source == "AFP")
 
-zas_shape23 <- left_join(zas_shape23,nh1, by = c("ADM0_NAME"="ctry"))  
+zas_shape23 <- left_join(zas_shape23,nh1, by = c("ADM0_NAME"="ctry2"))  
 zas_shape23 <- zas_shape23 %>% 
   mutate(
     count_cat = case_when(
@@ -248,7 +248,7 @@ zas2_sub <- left_join(zas25_sub, nh1, by = c("ADM0_NAME"= "ctry2"))
 
 # sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/zas_points.rds", obj = zasdata_points)
 
-zasdata_points <- sirfunctions::edav_io(io = "read",  file_loc = "data_clean/zas_points.rds")
+zasdata_points <- sirfunctions::edav_io(io = "read",  default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/zas_points.rds")
 # zasdata_test1 <- read_excel("zasdata_test1.xlsx", 
 #                             col_types = c("text", "text", "numeric", 
 #                                           "numeric", "text", "numeric", "numeric"))
@@ -292,7 +292,7 @@ map_25_n <-
   guides(fill = guide_legend(nrow = 1))+
   coord_sf(xlim = c(-127, 38), ylim = c(-20, 75), expand = FALSE)  
 
-# print(map_25_n)
+print(map_25_n)
 
 map_25_l <-
   map_25_n <-

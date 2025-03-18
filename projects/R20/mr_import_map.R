@@ -21,7 +21,7 @@ e_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")
 datt_task_id <- "R20"
 sub_folder <- "3. Figures"
 
-fig_name <- paste("mr_imports_",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
+fig_name <- paste("mr_imports_",e_w1,"_", format(today(), "%y%m%d"),"noarrow.png", sep="")
 temp_path <- file.path(tempdir(), fig_name)
 sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
 
@@ -119,11 +119,11 @@ arrow1 <- mr_sub %>%
 map <- ggplot2::ggplot() +
   ggplot2::geom_sf(data = ctry_mr,  fill = "#FFFFFF") +
   ggplot2::geom_sf(data = mr_sub , aes(fill = mr_im_01_24_cat), color = "grey20", lwd = 0.4) +
-  scale_fill_brewer(name= "No. of Measle\nImportations\nto the USA:\n('01-'24)" , palette = "GnBu") +
-  geom_arrow_curve(data=arrow1 , aes(x = top_long, y = top_lat, 
-                                                            xend = US_CENTER_LON, yend = US_CENTER_LAT), 
+  scale_fill_brewer(name= "# measles \nimportations \nto U.S." , palette = "GnBu") +
+  geom_arrow_curve(data=arrow1 , aes(x = top_long, y = top_lat,
+                                                            xend = US_CENTER_LON, yend = US_CENTER_LAT),
                    mid_place = 1, col = "black", size = 1, curvature = .3,
-                   lineend = "square") +
+                   lineend = "square", linetype=2) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.background = element_rect(fill = "#E3EBFF"),
@@ -136,8 +136,7 @@ map <- ggplot2::ggplot() +
   guides(fill = guide_legend(nrow = 1)) +
   coord_sf(xlim = c(-127, 150), ylim = c(-20, 75), expand = FALSE)  
 
-  
-  
+
 
 print(map)
 
@@ -151,58 +150,58 @@ upload_to_sharepoint(
 
 
 
-mp1 <- fortify(map(fill=TRUE, plot=FALSE))
-mp2 <- mp1
-mp2$long <- mp2$long + 360
-mp2$group <- mp2$group + max(mp2$group) + 1
-mp <- rbind(mp1, mp2)
-ggplot(aes(x = long, y = lat, group = group), data = mp) + 
-  geom_path() + 
-  scale_x_continuous(limits = c(0, 360))
-
-
-library(ggplot2)
-library(dplyr)
-library(maps)
-
-# Load world map data
-world <- map_data("world")
-
-# Shift longitude values
-world <- world %>%
-  mutate(long = ifelse(long < 0, long + 360, long))
-
-# # Plot the map centered on the International Date Line
-# ggplot(world, aes(x = long, y = lat, group = group)) +
-#   geom_polygon(fill = "lightblue", color = "black") +
-#   coord_quickmap(xlim = c(0, 360), ylim = c(-90, 90)) +
-#   scale_x_continuous(breaks = seq(0, 360, by = 60),
-#                      labels = c("180°W", "120°W", "60°W", "0°", "60°E", "120°E", "180°E")) +
-#   labs(title = "World Map Centered on the International Date Line",
-#        x = "Longitude",
-#        y = "Latitude") +
-#   theme_minimal()
-
-
-library(rnaturalearth)
-library(tidyverse)
-
-
-# domainCRS<- paste('PROJCS["ProjWiz_Custom_Lambert_Azimuthal"',
-#                   'GEOGCS["GCS_WGS_1984"',
-#                   'DATUM["D_WGS_1984"',
-#                   'SPHEROID["WGS_1984",6378137.0,298.257223563]]',
-#                   'PRIMEM["Greenwich",0.0]',
-#                   'UNIT["Degree",0.0174532925199433]]',
-#                   'PROJECTION["Lambert_Azimuthal_Equal_Area"]',
-#                   'PARAMETER["False_Easting",0.0]',
-#                   'PARAMETER["False_Northing",0.0]',
-#                   'PARAMETER["Central_Meridian",-120]',
-#                   'PARAMETER["Latitude_Of_Origin",12.55]',
-#                   'UNIT["Meter",1.0]]',
-#                   sep = ',')
-
-# map<-ne_countries(returnclass = "sf", continent = "europe")
-# ggplot() + 
-#   geom_sf(data = map)+
-#   coord_sf(crs = domainCRS)
+# mp1 <- fortify(map(fill=TRUE, plot=FALSE))
+# mp2 <- mp1
+# mp2$long <- mp2$long + 360
+# mp2$group <- mp2$group + max(mp2$group) + 1
+# mp <- rbind(mp1, mp2)
+# ggplot(aes(x = long, y = lat, group = group), data = mp) + 
+#   geom_path() + 
+#   scale_x_continuous(limits = c(0, 360))
+# 
+# 
+# library(ggplot2)
+# library(dplyr)
+# library(maps)
+# 
+# # Load world map data
+# world <- map_data("world")
+# 
+# # Shift longitude values
+# world <- world %>%
+#   mutate(long = ifelse(long < 0, long + 360, long))
+# 
+# # # Plot the map centered on the International Date Line
+# # ggplot(world, aes(x = long, y = lat, group = group)) +
+# #   geom_polygon(fill = "lightblue", color = "black") +
+# #   coord_quickmap(xlim = c(0, 360), ylim = c(-90, 90)) +
+# #   scale_x_continuous(breaks = seq(0, 360, by = 60),
+# #                      labels = c("180°W", "120°W", "60°W", "0°", "60°E", "120°E", "180°E")) +
+# #   labs(title = "World Map Centered on the International Date Line",
+# #        x = "Longitude",
+# #        y = "Latitude") +
+# #   theme_minimal()
+# 
+# 
+# library(rnaturalearth)
+# library(tidyverse)
+# 
+# 
+# # domainCRS<- paste('PROJCS["ProjWiz_Custom_Lambert_Azimuthal"',
+# #                   'GEOGCS["GCS_WGS_1984"',
+# #                   'DATUM["D_WGS_1984"',
+# #                   'SPHEROID["WGS_1984",6378137.0,298.257223563]]',
+# #                   'PRIMEM["Greenwich",0.0]',
+# #                   'UNIT["Degree",0.0174532925199433]]',
+# #                   'PROJECTION["Lambert_Azimuthal_Equal_Area"]',
+# #                   'PARAMETER["False_Easting",0.0]',
+# #                   'PARAMETER["False_Northing",0.0]',
+# #                   'PARAMETER["Central_Meridian",-120]',
+# #                   'PARAMETER["Latitude_Of_Origin",12.55]',
+# #                   'UNIT["Meter",1.0]]',
+# #                   sep = ',')
+# 
+# # map<-ne_countries(returnclass = "sf", continent = "europe")
+# # ggplot() + 
+# #   geom_sf(data = map)+
+# #   coord_sf(crs = domainCRS)

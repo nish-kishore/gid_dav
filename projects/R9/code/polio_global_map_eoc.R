@@ -16,7 +16,7 @@ if (exists("raw.data") == TRUE){
 # Load Inputs 
 # Dates (last 12 months)
 date_end <- floor_date(raw.data$metadata$download_time, "week", week_start = 1) %m+% days(1)
-date_start <- floor_date(date_end %m-% months(12), "week", week_start = 7)
+date_start <- floor_date(date_end %m-% months(13), "week", week_start = 7)
 # Epi Week 
 e_w <- paste0("W",as.character(epiweek(date_end)),",", sub="")
 e_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")

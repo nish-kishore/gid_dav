@@ -44,7 +44,7 @@ include_env <- T
 cumulative <- F #
 cumulative_map <- T
 date_start = as_date("2019-01-01")
-date_end = as_date("2025-02-28")
+date_end = floor_date(raw.data$metadata$download_time, "week", week_start = 1) %m+% days(1)
 emergence_group <- "WPV1"
 s_w1 <- paste0("W",as.character(epiweek(date_start)), sub="")
 w_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")
