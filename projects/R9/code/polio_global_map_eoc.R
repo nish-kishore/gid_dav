@@ -61,6 +61,7 @@ pos1 <- raw.data$pos %>%
                    report_date <= date_end & 
                    measurement %in%  o_vtype &
                    source %in% s1) %>%
+            distinct(epid, measurement, .keep_all = T) %>% 
             mutate(
               vtype_all = case_when(
                 measurement == "cVDPV 1" &  source == "AFP" ~ "cVDPV1 case", 
@@ -240,7 +241,7 @@ print(p1)
 # Save Locally
 if(uploadtosp == "yes"){
 
-  ggsave(filename = temp_path1, height = 8.3, width = 13, units = "in", scale = 1.5, dpi = 300)
+  ggsave(filename = temp_path1, height = 6.3, width = 13, units = "in", scale = 1.5, dpi = 300, bg = "white")
   cli::cli_alert("Beep Beep - Image Saved to Temp Folder")
   
   upload_to_sharepoint(
