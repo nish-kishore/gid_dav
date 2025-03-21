@@ -1,5 +1,5 @@
 ## R17 - Horizontal bar graphs showing % of vpd cases in GID priority countries (compared to all countries)
-# Updated 2025-02-27
+# Updated 2025-03-20
 # Author: Lori Niehaus / GID Data Analytics Task Team (DATT)
 
 ## R SETUP ################################################################
@@ -78,8 +78,7 @@ data <- data %>% left_join(global_totals, by=c("year","vpd","variable")) %>% # a
 ## Minor vpd label changes to data per request
 # change label for tetanus
 data$vpd_short_name[data$vpd_short_name== "Tetanus (neonatal and/or non-neonatal)"] <- "Tetanus (all)" # value too long
-data$vpd_short_name[data$vpd_short_name== "CRS"] <- "Congenital Rubella Syndrome" # CRS abbrev. to be spelled out
-
+data$vpd_short_name[data$vpd_short_name== "CRS"] <- "CRS*" # value too long
 
 ### Group data - A ##########################################################################
 ## collapse data sets for figures 2 & 3 to combine VALUE across years (plot_year period)
@@ -206,28 +205,35 @@ exclude_vpds <- c("Mumps")
 full_cntry_names <-c("Other Country", "Philippines","Pakistan","Nigeria","Indonesia","Ethiopia","Democratic Republic\nof the Congo", "Brazil", "Afghanistan")
 # NO FACET
 
+desired_legend_order <- c("Afghanistan", "Brazil", "Democratic Republic\nof the Congo",
+                          "Ethiopia", "Indonesia", "Nigeria",
+                          "Pakistan", "Philippines", "Other Country")
+
 fig2A <- data %>% filter(variable==plot_variable, !vpd_short_name %in% exclude_vpds) %>% 
   ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat)) +
   geom_bar(stat="identity") +
   coord_flip() + # Flip coordinates for horizontal bars
-  ggtitle("Proportion of Total Global VPD Cases\nin GID Priority Countries", 
-          subtitle=paste0("Reported cumulative cases between ",year_range,"*")) +
-  xlab("Vaccine-Preventable Disease") +
-  ylab("Proportion of Cases (%)") +
+  ggtitle("Proportion of Total Global Cases\nin GID Priority Countries") +
+  xlab("") +
+  ylab(paste0("% of Reported Cases (",year_range,")")) +
   scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
-  labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
-       Note: VPD case estimates are based on available surveillance data reported by countries and may underestimate\ntrue burden in some countries. Reported case data is not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
-       in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
+  labs(caption="
+  *CRS = Congenital Rubella Syndrome. Vaccine-preventable disease case estimates are based on available\ncountry-reported surveillance data reported and may underestimate true burden. Data is not available for all\ncountries and VPDs in period. Mpox and COVID-19 include all reported cases during global pandemics.") +
   scale_fill_manual(values=color_pal_9, labels=full_cntry_names)+
-  guides(fill=guide_legend(title="Geography")) +
+  guides(fill=guide_legend(title="", reverse=TRUE)) +
   theme_bw() +
   theme(plot.title=element_text(hjust=0.5, face="bold", size=20),
-        plot.caption = element_text(hjust = 0),
-        plot.subtitle=element_text(hjust=0.5, size=14),
+        plot.caption = element_text(hjust=0.5,size=8),
+        plot.subtitle =element_text(hjust=0.5, size=14),
         axis.text.x = element_text(size=14),
-        axis.text.y = element_text(size=16),
-        axis.title.y = element_text(size=18),
-        axis.title.x = element_text(vjust=0.5,size=18))
+        axis.text.y = element_text(size=14),
+        axis.title.y = element_text(size=14),
+        axis.title.x = element_text(vjust=0.5,size=14),
+        legend.text=element_text(size=8),
+        legend.spacing.x = unit(0.1, 'cm'),
+        legend.key.size = unit(1.1, 'line'),
+        legend.box="horizontal",
+        legend.position = "top")
 
 fig2A
 fig2A_name <- paste(datt_task_id,"fig2A",type,year_range, plot_variable, "by","country","vpd.png", sep="_")
@@ -237,7 +243,7 @@ temp_path2A <- file.path(tempdir(), fig2A_name)
 ggsave(filename=temp_path2A, width = 12, height = 8, dpi = 300)
 
 
-### Fig 2B: VPD cumulative case counts over 6-year period, each CC separate as proportion of global ##################
+### Fig 2B: Subset of VPDs - VPD cumulative case counts over 6-year period, each CC separate as proportion of global ##################
 
 ## Alternate version including only VPDs where >=50% of cases in GID Priority Countries
 temp <- fig3_data %>% mutate(highpropvpd = case_when(
@@ -258,24 +264,22 @@ fig2B <- data %>% filter(variable==plot_variable, !vpd_short_name %in% exclude_v
   ggplot(aes(x = vpd_short_name, y = proportion_of_global, fill = cc_cat)) +
   geom_bar(stat="identity") +
   coord_flip() + # Flip coordinates for horizontal bars
-  ggtitle("Proportion of Total Global VPD Cases\nin GID Priority Countries", 
-          subtitle=paste0("Reported cumulative cases between ",year_range,"*")) +
-  xlab("Vaccine-Preventable Disease") +
-  ylab("Proportion of Cases (%)") +
+  ggtitle("Proportion of Total Global Cases\nin GID Priority Countries") +
+  xlab("") +
+  ylab(paste0("% of Reported Cases (",year_range,")")) +
   scale_y_continuous(labels = percent_format(scale = 1)) + # Scale set to avoid multiplying by hundred
-  labs(caption="*Preliminary 2024 case data is only included for measles, polio, Mpox, and COVID-19.\n 
-       Note: VPD case estimates are based on available surveillance data reported by countries and may underestimate\ntrue burden in some countries. Reported case data is not available in NGA for typhoid, pertussis, meningitis, JE, & CRS; 
-       in DRC for meningitis and JE; in IDN for typhoid; in PHL for YF, & CRS; in BRA for JE") +
+  labs(caption="
+  *CRS = Congenital Rubella Syndrome. Vaccine-preventable disease case estimates are based on available\nsurveillance data reported by countries and may underestimate true burden. Reported case data\nis not available for all countries and VPDs in time period.") +
   scale_fill_manual(values=color_pal_9, labels=full_cntry_names)+
   guides(fill=guide_legend(title="Geography")) +
   theme_bw() +
   theme(plot.title=element_text(hjust=0.5, face="bold", size=20),
-        plot.caption = element_text(hjust = 0),
+        plot.caption = element_text(hjust = 0.5),
         plot.subtitle=element_text(hjust=0.5, size=14),
         axis.text.x = element_text(size=14),
-        axis.text.y = element_text(size=16),
-        axis.title.y = element_text(size=18),
-        axis.title.x = element_text(vjust=0.5,size=18))
+        axis.text.y = element_text(size=14),
+        axis.title.y = element_text(size=14),
+        axis.title.x = element_text(vjust=0.5,size=14))
 
 fig2B
 fig2B_name <- paste(datt_task_id,"fig2B",type,year_range, plot_variable, "by","country","vpd.png", sep="_")
@@ -327,7 +331,7 @@ temp_path3A <- file.path(tempdir(), fig3A_name)
 ggsave(filename=temp_path3A, width = 12, height = 8, dpi = 300)
 
 
-### Fig 3B: VPD cumulative case counts over 6-year period, all CCs combined together as proportion of global ####
+### Fig 3B: Subset of VPDs - VPD cumulative case counts over 6-year period, all CCs combined together as proportion of global ####
 data <- fig3_data
 plot_variable <- "cases"
 exclude_vpds <- c("Mumps", setdiff(unique(fig2_data$vpd_short_name),temp$vpd_short_name))
