@@ -3,7 +3,20 @@
 # First Expotations from Nigeria to surrounding countries (Lake Chad Basin Era)
 # Second Phase into AFRO (Explosive AFRO)
 # Third Phase Into Europe (Boarder exportations into EURO )
+library(readxl)    
+read_excel_allsheets <- function(filename, tibble = FALSE) {
+  # I prefer straight data.frames
+  # but if you like tidyverse tibbles (the default with read_excel)
+  # then just pass tibble = TRUE
+  sheets <- readxl::excel_sheets(filename)
+  x <- lapply(sheets, function(X) readxl::read_excel(filename, sheet = X))
+  if(!tibble) x <- lapply(x, as.data.frame)
+  names(x) <- sheets
+  x
+}
 
+## Can be replaced with a pulldown from EDAV: air_travel_data_20_24.rds
+air_travel <- read_excel_allsheets(filename = "./reference/international_air_travelers_03.21.25.xlsx")
 
 # Load in Packages
 source("./reference/obx_packages_01.R", local = T)
@@ -42,7 +55,7 @@ print(fig_name)
 
 temp_path <- file.path(tempdir(), fig_name)
 }else if (f_type == "3p_w"){
-  fig_name <- paste("zas1_traverlers_3p_w_",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
+  fig_name <- paste("zas1_traverlers_3p_w_head",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
   temp_path <- file.path(tempdir(), fig_name)
   print(fig_name)
 
@@ -76,7 +89,7 @@ zas1 <- raw.data$pos %>%
 
 
 d1 <- as_date("2020-01-01")
-d2 <- as_date("2021-12-31")
+d2 <- as_date("2020-12-31")
 d3 <- as_date("2023-12-31")
 d4 <- as_date("2025-12-31")
 
@@ -142,55 +155,57 @@ zas_shape2 <- zas_shape2 %>%
       count >= 3000000  ~ ">3m"),
     count_cat = factor(count_cat, levels = c("<2k", "2-10k","10-100k","100k-1m", "1-3m", ">3m")))
 
-
-map_20_trav <- trav |>
-  filter(ctry2 %in% (zas_shape2 |> pull(ADM0_NAME))) |>
+# Numbers for Figure
+map_20_trav <- air_travel$international_air_travelers_20 |>
+  filter(ctry %in% (zas_shape2 |> pull(ADM0_NAME))) |>
   #filter(year %in% 2020:2022) |>
   #going to keep this for 2023 to keep with shading on map
-  filter(year == 2023) |>
-  group_by(ctry2) |>
-  summarise(count = mean(count, na.rm = T)) |>
-  summarise(count = sum(count)) |>
-  pull(count) |>
-  round(0) |>
-  comma()
+  group_by(ctry) |>
+  summarise(count = sum(foreign_arrivals + us_departures), 
+            r_value = paste(format(round(count / 1e6, 2), trim = TRUE), "M", sep = ""))|>
+  pull(r_value) 
+
+map_ob_20 <-nrow(zas_shape2)
+
+
 
 map_20 <-
   ggplot2::ggplot() +
   ggplot2::geom_sf(data = all,  fill =  "#FFFFFF") +
   # ggplot2::geom_sf(data = afro2, color = "grey20", lwd = 0.6, fill = "#FFFFFF") +
-  ggplot2::geom_sf(data = zas_shape2, aes(fill=count_cat), color = "grey20", lwd = 0.4) +
-  geom_arrow_curve(data=zas3_a %>% filter(count>10000, ADM0_NAME %in% zas_shape2$ADM0_NAME),
-                   aes(x = CENTER_LON, y = CENTER_LAT,
-                       xend = US_CITY_LON, yend = US_CITY_LAT),
-                   mid_place = 1, col = "grey33", size = 1, curvature = .3,ends = "both",
-                   lineend = "square", linetype = 2) +
+  ggplot2::geom_sf(data = zas_shape2, fill = "#FF6633", color = "grey10", lwd = 0.7) +
+  # geom_arrow_curve(data=zas3_a %>% filter(count>10000, ADM0_NAME %in% zas_shape2$ADM0_NAME),
+  #                  aes(x = CENTER_LON, y = CENTER_LAT,
+  #                      xend = US_CITY_LON, yend = US_CITY_LAT),
+  #                  mid_place = 1, col = "grey33", size = 1, curvature = .3,ends = "both",
+  #                  lineend = "square", linetype = 2) +
   # ggplot2::coord_sf(
   #   xlim = country_bbox[c("xmin", "xmax")],
   #   ylim = country_bbox[c("ymin", "ymax")]
   # ) +
   ggplot2::theme_bw() +
-  scale_fill_brewer(name= "Travelers\n to US:\n(2023)" , palette = "Reds", drop = FALSE) +
+  # scale_fill_brewer(name= "Travelers\n to US:\n(2023)" , palette = "Reds", drop = FALSE) +
   theme(legend.position = "none",
         panel.background = element_rect(fill = "#E3EBFF"),
-        legend.title = element_text(face="bold", size = 12),
+        # legend.title = element_text(face="bold", size = 12),
         axis.title=element_blank(),
         axis.text=element_blank(),
         axis.ticks=element_blank(),
-        plot.title = element_markdown(hjust = 0.5, face="bold", size = 12),
-        plot.subtitle = element_markdown(hjust = 0.5, size = 12)) +
-  ggtitle("2020-2022")  +
-  labs(subtitle = paste0(map_20_trav, " inbound travelers")) +
+        plot.caption = element_textbox(hjust = 0.5, size = 12, halign = 0.5, lineheight = 1.5)) +
+  labs(caption  = paste0("<b>2020</b><br>", "<b>", map_ob_20, " country</b> with NIE-ZAS-1 detections<br>", 
+                         "<b>", map_20_trav, " travelers </b>between U.S. and<br>affected countries")) +
   coord_sf(xlim = c(-127, 38), ylim = c(-20, 75), expand = FALSE)
 
 print(map_20)
+# ggsave(plot = map_20, filename = "./output/zas1_test.jpeg", height = 4, width = 4, dpi = 300)
+
 # top <- plot_grid(figure.list[[1]], figure.list[[2]], ncol = 2)
 # bottom <- plot_grid(figure.list[[3]], ncol = 1)
 # plot_grid(top, bottom,
 #           ncol=1, rel_heights=c(1,1))
 
 
-# 2022-2024
+# 2021-2023
 zas2023 <- zas1 %>%
   filter(dateonset > d2 &
            dateonset <= d3)
@@ -209,6 +224,7 @@ zas2023_cases <- zas2023 %>%
 
 zas_shape23 <- left_join(zas_shape23,nh1, by = c("ADM0_NAME"="ctry2"))
 zas_shape23 <- zas_shape23 %>%
+  filter(ENDDATE == "9999-12-31") %>%
   mutate(
     count_cat = case_when(
       count < 2000 ~ "<2k",
@@ -219,30 +235,41 @@ zas_shape23 <- zas_shape23 %>%
       count >= 3000000  ~ ">3m"),
     count_cat = factor(count_cat, levels = c("<2k", "2-10k","10-100k","100k-1m", "1-3m", ">3m")))
 
-map_23_trav <- trav |>
-  filter(ctry2 %in% (zas_shape23 |> pull(ADM0_NAME))) |>
-  #filter(year %in% 2020:2022) |>
-  #going to keep this for 2023 to keep with shading on map
-  filter(year == 2023) |>
-  group_by(ctry2) |>
-  summarise(count = mean(count, na.rm = T)) |>
-  summarise(count = sum(count)) |>
-  pull(count) |>
-  round(0) |>
-  comma()
+# map_23_trav <- trav |>
+#   filter(ctry2 %in% (zas_shape23 |> pull(ADM0_NAME))) |>
+#   #filter(year %in% 2020:2022) |>
+#   #going to keep this for 2023 to keep with shading on map
+#   filter(year == 2023) |>
+#   group_by(ctry2) |>
+#   summarise(count = mean(count, na.rm = T)) |>
+#   summarise(count = sum(count)) |>
+#   pull(count) |>
+#   round(0) |>
+#   comma()
+
+
+air_all <- rbind(air_travel$international_air_travelers_21, air_travel$international_air_travelers_22, air_travel$international_air_travelers_23)
+
+map_23_trav <- air_all |>
+  filter(ctry %in% (zas_shape23 |> pull(ADM0_NAME))) |>
+  mutate(foreign_arrivals = as.numeric(foreign_arrivals),
+         us_departures = as.numeric(us_departures)) %>%
+  group_by(ctry) |>
+  summarise(count_fa = mean(foreign_arrivals, na.rm = TRUE),
+            count_ud = mean(us_departures, na.rm = TRUE)) %>% 
+  summarise(count = sum(count_fa + count_ud, na.rm = TRUE),
+            r_value = paste(format(round(count / 1e6, 2), trim = TRUE), "M", sep = ""))|>
+  pull(r_value) 
+
+test <- paste(format(round(map_20_trav / 1e6, 1), trim = TRUE), "M")
+map_ob_23 <- nrow(zas_shape23)
 
 
 map_23 <-
   ggplot2::ggplot() +
   ggplot2::geom_sf(data = all, fill =  "#FFFFFF") +
-  ggplot2::geom_sf(data = zas_shape23, aes(fill=count_cat), color = "grey20", lwd = 0.4) +
-  geom_arrow_curve(data=zas3_a %>% filter(count>10000, ADM0_NAME %in% zas_shape23$ADM0_NAME),
-                   aes(x = CENTER_LON, y = CENTER_LAT,
-                       xend = US_CITY_LON, yend = US_CITY_LAT),
-                   mid_place = 1, col = "grey33", size = 1, curvature = .3,ends = "both",
-                   lineend = "square", linetype = 2) +
+  ggplot2::geom_sf(data = zas_shape23, fill = "#FF6633", color = "grey30", lwd = 0.8) +
   ggplot2::theme_bw() +
-  scale_fill_brewer(name= "Travelers\n to US:\n(2023)" , palette = "Reds", drop = FALSE) +
   theme(legend.position = "none",
         panel.background = element_rect(fill = "#E3EBFF"),
         legend.title = element_text(face="bold", size = 12),
@@ -250,9 +277,10 @@ map_23 <-
         axis.text=element_blank(),
         axis.ticks=element_blank(),
         plot.title = element_markdown(hjust = 0.5, face="bold", size = 12),
-        plot.subtitle = element_markdown(hjust = 0.5, size = 12)) +
-  ggtitle("2022-2024")  +
-  labs(subtitle = paste0(map_23_trav, " inbound travelers")) +
+        plot.subtitle = element_markdown(hjust = 0.5, size = 12, halign = "center"),
+        plot.caption = element_textbox(hjust = 0.5, size = 12, halign = 0.5, lineheight = 1.5)) +
+  labs(caption  = paste0("<b>2021-2023</b><br>", "<b>", map_ob_23, " countries</b> with NIE-ZAS-1 detections<br>", 
+                         "<b>", map_23_trav, " travelers </b>on average between U.S. and<br>affected countries per year"))+
   coord_sf(xlim = c(-127, 38), ylim = c(-20, 75), expand = FALSE)
 
  print(map_23)
@@ -270,10 +298,11 @@ zas2025_ctry <- zas2025 %>%
 
 # Merge with country file
 zas_shape25 <- left_join(afro2, zas2025_ctry, by = c("ADM0_NAME"="place.admin.0")) %>%
-  filter(is.na(n_25)==F)
+  filter(is.na(n_25)==F & 
+         ENDDATE == "9999-12-31")
 
-zas2025_cases <- zas2025 %>%
-  filter(source == "AFP")
+# zas2025_cases <- zas2025 %>%
+#   filter(source == "AFP")
 
 # Create maps
 nh_data <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/traveler_outbound.rds")
@@ -298,7 +327,7 @@ zasdata_points <- sirfunctions::edav_io(io = "read",  default_dir = "GID/GIDMEA/
 # zasdata_test1 <- read_excel("zasdata_test1.xlsx",
 #                             col_types = c("text", "text", "numeric",
 #                                           "numeric", "text", "numeric", "numeric"))
-zas3 <- right_join(zas25_sub, zasdata_points, by = c("ADM0_NAME"))
+# zas3 <- left_join(zas25_sub, zasdata_points, by = c("ADM0_NAME"))
 zas3 <- left_join(zas3, nh1, by = c("ADM0_NAME"="ctry2"))
 
 zas3_a <- zas3 %>% mutate(
@@ -313,30 +342,37 @@ zas3_a <- zas3 %>% mutate(
 
 zas3_b <- zas3_a %>% filter(region %in% c("Western Europe", "Eastern Europe"))
 
+map_24_trav <- air_travel$international_air_travelers_24 %>%
+  filter(ctry %in% (zas3_a |> pull(ADM0_NAME))) %>%
+  mutate(foreign_arrivals = as.numeric(foreign_arrivals),
+         us_departures = as.numeric(us_departures)) %>%
+  group_by(ctry) %>%
+  summarise(count = sum(foreign_arrivals + us_departures, na.rm = T)) %>%
+  summarise(count = sum(count, na.rm = TRUE),
+            r_value = paste(format(round(count / 1e6, 2), trim = TRUE), "M", sep = ""))%>%
+  pull(r_value) 
+
+map_ob_count <- map_ob_count <- nrow(zas3_a)
+
+
 map_25_n <-
   ggplot2::ggplot() +
   # ggplot2::geom_sf(data = all) +
   ggplot2::geom_sf(data = all,  fill = "#FFFFFF") +
-  # ggplot2::geom_sf(data = prov2,  lwd = 0.1, fill = NA, show.legend = FALSE) +
-  ggplot2::geom_sf(data = zas3_b ,fill = "red", color = "grey20", lwd = 0.4) +
-  geom_arrow_curve(data=zas3_b %>% filter(count>10000), aes(x = CENTER_LON, y = CENTER_LAT,
-                                                            xend = US_CITY_LON, yend = US_CITY_LAT),
-                   mid_place = 1, col = "grey50", linewidth = 1, curvature = .3,
-                   lineend = "round", linetype = "dashed") +
+  ggplot2::geom_sf(data = zas_shape25, fill = "#FF6633", color = "grey30", lwd = 0.8) +
   ggplot2::theme_bw() +
-  scale_fill_brewer(name= "Travelers\n to US:\n(2023)" , palette = "Reds") +
   theme(legend.position = "none",
         panel.background = element_rect(fill = "#E3EBFF"),
         legend.title = element_text(face="bold", size = 12),
         legend.text = element_text(size = 12),
-
         axis.title=element_blank(),
         axis.text=element_blank(),
         axis.ticks=element_blank(),
-        plot.title = element_markdown(hjust = 0.5, face="bold", size = 12)) +
-  # ggtitle("2024-Present")  +
-  guides(fill = guide_legend(nrow = 1))+
-  coord_sf(xlim = c(-127, 38), ylim = c(25, 75), expand = FALSE)
+        plot.title = element_markdown(hjust = 0.5, face="bold", size = 12),
+        plot.caption = element_textbox(hjust = 0.5, size = 12, halign = 0.5, lineheight = 1.5)) +
+  labs(caption  = paste0("<b>2024-Present</b><br>", "<b>", map_ob_count, " countries</b> with NIE-ZAS-1 detections<br>", 
+                         "<b>", map_24_trav, " travelers </b>between U.S. and<br>affected countries"))+  
+  coord_sf(xlim = c(-127, 38), ylim = c(-20, 75), expand = FALSE)
 
 print(map_25_n)
 
@@ -432,11 +468,11 @@ all_2 <- plot_grid(top, bottom,
 
 print(all_2)
 }else if (f_type == "3p_w"){
-  legend <- get_legend(map_25_l)
+  # legend <- get_legend(map_25_l)
 
   # Wide Panel
-  panel_wide <- (map_20 + map_23 + map_25_n)/ legend +
-    plot_layout(heights = unit(c(2, 1), c("in")))
+  panel_wide <- (map_20 + map_23 + map_25_n) +
+    plot_layout(heights = unit(c(2, 1), c("in")), nrow = 1)
 
   print(panel_wide)
 }else{
