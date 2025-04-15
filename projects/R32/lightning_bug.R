@@ -203,10 +203,6 @@ map <- ggplot2::ggplot() +
                                          "cVDPV2 & cVDPV3" = "#FF7F00"),
                              na.translate = F,
                              drop = FALSE) +
-  
-  # ggplot2::geom_sf(data = plot_data, ggplot2::aes(fill = n_det_cat), show.legend = T) +
-  # ggplot2::scale_fill_brewer(palette = "YlOrRd", drop = F, na.translate = F) +
- 
   ggplot2::theme_bw() +
   guides(fill = guide_legend(ncol = 2)) +
   ggplot2::theme(legend.position = "bottom",
@@ -239,9 +235,6 @@ out_plot <- map
                                           "cVDPV2 & cVDPV3" = "#FF7F00"),
                                na.translate = F,
                                drop = FALSE) +
-    
-    # ggplot2::geom_sf(data = plot_data, ggplot2::aes(fill = n_det_cat), show.legend = T) +
-    # ggplot2::scale_fill_brewer(palette = "YlOrRd", drop = F, na.translate = F) +
     
     ggplot2::theme_bw() +
     guides(fill = guide_legend(ncol = 2)) +
