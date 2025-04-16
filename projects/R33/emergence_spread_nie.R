@@ -14,10 +14,10 @@ if (exists("raw.data") == TRUE){
 
 # Load Inputs 
 include_env <- T
-cumulative_map <- T
+cumulative_map <- F
 include_epi <- T
 color_epi_curve <- T
-date_start = as_date("2016-01-01")
+date_start = as_date("2018-01-01")
 date_end = floor_date(raw.data$metadata$download_time, "week", week_start = 1) %m+% days(1)
 emergence_group_root <- "NIE-"
 s_w1 <- paste0("W",as.character(epiweek(date_start)), sub="")
@@ -29,14 +29,15 @@ fig_name <- paste(emergence_group_root, "_", date_start, "_", date_end,".gif" , 
 out_gif <- file.path(tempdir(), fig_name)
 sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
 
-emg_colors <- c("cVDPV-a" =   "#FF7F00", 
+emg_colors <- c(
                 "NIE-BOS-1" = "#BCD2EE",
                 "NIE-JIS-1" = "#104E8B", 
                 "NIE-KBS-1" = "#FFD39B", 
                 "NIE-KGS-1" = "#00FFFF", 
                 "NIE-KGS-2" = "#B03060", 
                 "NIE-KTS-1" = "#68228b",  
-                "NIE-SOS-2" = "#556B2F", 
+                # "NIE-SOS-2" = "#556B2F", 
+                # "cVDPV-a" =   "#FF7F00",
                 "NIE-SOS-3" = "#6959CD",
                 "NIE-SOS-4" = "#FF7F24", 
                 "NIE-SOS-5" = "#FFC125",
@@ -70,14 +71,13 @@ create_emergence_group_gif <- function(
                     dateonset >= date_start &
                     dateonset < date_end) |>
     dplyr::select(place.admin.0, adm0guid, admin2guid, dateonset, epid, source, latitude, longitude, emergencegroup) %>% 
-    mutate(eg2 = factor(emergencegroup, levels = c("cVDPV-a", 
+    mutate(eg2 = factor(emergencegroup, levels = c(
                                                    "NIE-BOS-1",
                                                    "NIE-JIS-1", 
                                                    "NIE-KBS-1", 
                                                    "NIE-KGS-1", 
                                                    "NIE-KGS-2", 
                                                    "NIE-KTS-1",  
-                                                   "NIE-SOS-2", 
                                                    "NIE-SOS-3",
                                                    "NIE-SOS-4", 
                                                    "NIE-SOS-5",
@@ -104,13 +104,12 @@ create_emergence_group_gif <- function(
     dplyr::mutate(month_date = lubridate::floor_date(dateonset, unit = "month")) |>
     dplyr::group_by(month_date, emergencegroup) |>
     dplyr::summarise(n_det = dplyr::n(), .groups = "drop") %>% 
-    mutate(eg2 = factor(emergencegroup, levels = c("cVDPV-a", 
+    mutate(eg2 = factor(emergencegroup, levels = c(
                                                    "NIE-BOS-1",
                                                    "NIE-KBS-1", 
                                                    "NIE-KGS-1", 
                                                    "NIE-KGS-2", 
                                                    "NIE-KTS-1",  
-                                                   "NIE-SOS-2", 
                                                    "NIE-SOS-3",
                                                    "NIE-SOS-4", 
                                                    "NIE-SOS-5",

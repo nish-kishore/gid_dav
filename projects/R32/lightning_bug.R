@@ -54,7 +54,7 @@ w_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")
 
 datt_task_id <- "R28"
 sub_folder <- "3. Figures"
-fig_name <- paste("lightbug_", date_start, "_", date_end,".gif" , sep = "")
+fig_name <- paste("v2_lightbug_", date_start, "_", date_end,".gif" , sep = "")
 out_gif <- file.path(tempdir(), fig_name)
 sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
 
@@ -212,7 +212,7 @@ map <- ggplot2::ggplot() +
                  axis.text=element_blank(), 
                  axis.ticks=element_blank(), 
                  panel.background = element_rect(fill = "#E3EBFF")) + 
-  labs(title = paste0(" Polio outbreak countries - ",
+  labs(title = paste0(" Polio Outbreaks (OBs)- ",
                       lubridate::year(date_of_eval),
                       " ",
                       lubridate::month(date_of_eval, label = T),
@@ -267,9 +267,13 @@ epi_curve <-
   ggplot2::ggplot() +
   ggplot2::geom_bar(data = epi_table, ggplot2::aes(x = month_date, y = n), stat = "identity") +
   ggplot2::geom_vline(xintercept = date_of_eval, color = "red", linetype = 2) +
-  ggplot2::labs(x = "Date", y = paste("No. of OBs per month")) +
+  ggplot2::labs(x = "Month", y = paste("No. of OBs")) +
+  ggplot2::scale_x_date(breaks = "year", labels=date_format("%Y")) +
   ggplot2::scale_y_continuous(breaks = seq(0,35,10),limits = c(0,35)) + 
-  ggplot2::theme_bw() 
+  ggplot2::theme_bw() + 
+  ggplot2::theme(legend.position = "none", 
+                 axis.title = element_text(face = "bold"))
+
 
 }else{
 
@@ -277,23 +281,26 @@ epi_curve <-
     ggplot2::ggplot() +
     ggplot2::geom_bar(data = epi_table, ggplot2::aes(x = month_date, y = n, fill = measurement), stat = "identity") +
     ggplot2::geom_vline(xintercept = date_of_eval, color = "grey20", linetype = 2) +
-    ggplot2::labs(x = "Date", y = paste("No. of OBs per month")) +
+    ggplot2::labs(x = "Month", y = paste("No. of OBs")) +
     ggplot2::scale_fill_manual(
                                values = c("cVDPV1" = "#104E8B", 
                                           "cVDPV2" = "#EE2C2C", 
                                           "cVDPV3" = "#EEC900")) +
     ggplot2::scale_y_continuous(breaks = seq(0,35,10),limits = c(0,35)) + 
+    ggplot2::scale_x_date(breaks = "year", labels=date_format("%Y")) +
     ggplot2::theme_bw() + 
-    ggplot2::theme(legend.position = "none")
+    ggplot2::theme(legend.position = "none", 
+                   axis.title = element_text(face = "bold"))
 }
   out_plot <- ggpubr::ggarrange(epi_curve, map, ncol = 1, heights = c(1, 2)) |>
-    ggpubr::annotate_figure(top = paste0(" Polio outbreak countries - ",
+    ggpubr::annotate_figure(top = text_grob(paste0(" Polio Outbreaks (OBs) - ",
                                          lubridate::year(date_of_eval),
                                          " ",
                                          lubridate::month(date_of_eval, label = T),
                                          ": ",
                                          no_ctry,
-                                         " countries"))
+                                         " countries"), face = "bold"))
+                            
 }
 
 print(out_plot)
