@@ -1,0 +1,281 @@
+#### R18: Alternative Version 2C with travelers to and from US per 100K pop as the horizontal axis and measles cases per 100K as the size variable and ISO codes####
+
+#Author: Erin Goucher
+
+#### Install and Load R Packages ####
+required.packages <- c("tidyverse", "AzureStor", "Microsoft365R", "readxl", "janitor", "scales", 
+                       "devtools", "dplyr", "stringr", "ggbeeswarm", "ggrepel", "scales")
+
+packages.to.install <- setdiff(required.packages, installed.packages())
+if (length(packages.to.install) > 0) install.packages(packages.to.install)
+
+# Load libraries
+library(tidyverse)
+library(readxl)
+library(AzureStor)
+library(Microsoft365R)
+library(janitor)
+library(ggplot2)
+library(ggrepel)
+library(dplyr)
+library(stringr)
+library(ggbeeswarm)
+library(scales)
+
+#### General Formatting ####
+#Define Priority Countries 
+priority_country_names <- c("Afghanistan", "Pakistan", "Nigeria", "Ethiopia", 
+                            "Democratic Republic of the Congo", "Indonesia", "Philippines", "Brazil")
+
+#Define Color Palette 
+color_pal_9 <- c(
+  "Afghanistan" = "#A51D42",
+  "Brazil" = "#D5006D",
+  "Democratic Republic of the Congo" = "#007B7A",
+  "Ethiopia" = "#00A266",
+  "Indonesia" = "#582D90",
+  "Nigeria" = "#334A54",
+  "Pakistan" = "#D76B6E",
+  "Philippines" = "#A76DAB",
+  "Other Country" = "#afabab"
+)
+
+#Sort Priority Countries in alphabetical order for legend 
+sorted_priority_names <- sort(names(color_pal_9)[names(color_pal_9) != "Other Country"])
+
+#### Population data####
+data_ctr_pop <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/ctry_pop.rds")
+
+# Format `ADM0_NAME` to match `country_name`
+data_ctr_pop <- data_ctr_pop %>% mutate(ADM0_NAME = str_to_title(tolower(ADM0_NAME)))
+data_ctr_pop$ADM0_NAME <- ifelse(data_ctr_pop$ADM0_NAME == "Democratic Republic Of The Congo", 
+                                 "Democratic Republic of the Congo", data_ctr_pop$ADM0_NAME)
+
+# Filter for Years 2019-2023 
+data_ctr_pop <- data_ctr_pop %>% 
+  filter(year >= 2019 & year <= 2023)
+
+# Calculate average population from 2019-2023
+data_ctr_pop <- data_ctr_pop %>%
+  group_by(ADM0_NAME) %>%
+  summarize(avg_pop = mean(totalpop, na.rm = TRUE))
+
+#### X axis data  ####
+#Read in traveler to the US data
+data_trvlr_in <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                                    file_loc = "data_clean/traveler_outbound.rds")
+#### Summarize Traveler Data
+data_trvlr_in <- data_trvlr_in %>% 
+  filter(year >= 2019 & year <= 2023)
+
+#Read in traveler out of the US data
+data_trvlr_out <- read_excel("C:/Users/tqa4/OneDrive - CDC/Summer 2022/EPMPs/DATT Visuals/international_air_travelers_04.10.25.xlsx")
+
+#### Filter Traveler Data for year
+data_trvlr_out <- data_trvlr_out %>% 
+  filter(year >= 2019 & year <= 2023)
+
+# Standardize country capitlization 
+data_trvlr_out$ctry <- stringr::str_to_title(tolower(data_trvlr_out$ctry ))
+
+#Replaces NAs and missings to 0s(only foreign arrivials and US departures)
+data_trvlr_out <- data_trvlr_out %>%
+  mutate(across(
+    c(us_departures),
+    ~ {
+      clean_vals <- gsub(",", "", trimws(.))
+      clean_vals[clean_vals %in% c("", "..", "-", "NA", "<5")] <- "0"
+      val_numeric <- as.numeric(clean_vals)
+      replace(val_numeric, is.na(val_numeric), 0)  # final replacement
+    }
+  ))
+
+#Convert columns to numeric (only foreign arrivials and US departures)
+data_trvlr_out <- data_trvlr_out %>%
+  mutate(
+    us_departures = as.numeric(us_departures)
+  )
+
+#Join traveler datasets
+data_trvlr <- data_trvlr_in %>%
+  full_join(data_trvlr_out, by = c("ctry", "year")) 
+
+#Summarize travel data for total travelers
+data_trvlr <- data_trvlr %>%
+  group_by(ctry, year) %>%
+  summarize(
+    count = sum(count + us_departures, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+#### Size data (Measles Case Data)####
+# Read in Data from ADLS 
+dataset_vpd <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", 
+                                     file_loc = "data_clean/country_vpd_year_casedata.rds")
+# Filter for Years 2019-2023 
+dataset_vpd <- dataset_vpd %>% 
+  filter(year >= 2019 & year <= 2023)
+
+#Filter for VPD cases only 
+dataset_vpd <- dataset_vpd %>% 
+  filter(variable == "cases")
+
+#Filter for Measles cases only 
+dataset_vpd <- dataset_vpd %>% 
+  filter(vpd == "Measles")
+
+#### Y axis data ####
+dataset_import <- read_excel("C:/Users/tqa4/OneDrive - CDC/Summer 2022/EPMPs/DATT Visuals/mr_import_01_24 1.xlsx")
+
+# Standardize country capitlization 
+dataset_import$country <- stringr::str_to_title(tolower(dataset_import$country))
+
+#### Join vpd and trvlr data ####
+joined_data <- dataset_vpd %>%
+  full_join(data_trvlr, by = c("country_name" = "ctry", "year")) 
+
+#### Sum relevant columns ####
+data_summary <- joined_data %>%
+  group_by(country_name) %>%
+  summarize(
+    iso3_code = first(iso3_code),
+    total_travelers_to_US = sum(count, na.rm = TRUE),
+    total_measles_cases = sum(value, na.rm = TRUE)
+  )
+
+# Join size/import data 
+#### Join size/import data and average population data ####
+data_full_summary <- data_summary %>%
+  full_join(dataset_import, by =c("country_name" = "country"))%>%
+  full_join(data_ctr_pop, by = c("country_name" = "ADM0_NAME"))
+
+#### Calculate per 100,000 average population values ####
+data_full_summary <- data_full_summary %>%
+  mutate(
+    measles_per_100k = (total_measles_cases / avg_pop) *100000,
+    travelers_per_100k = (total_travelers_to_US /avg_pop) *100000
+  )
+
+#### Clean data ####
+data_full_summary_clean <- data_full_summary %>%
+  filter(travelers_per_100k != 0, measles_per_100k != 0, mr_im_13_24 !=0)
+
+
+#### Graph ####
+# Define axis limits (x = mr_im_13_24, y = travelers_per_100k)
+x_limits <- c(min(data_full_summary_clean$mr_im_13_24, na.rm = TRUE) * 0.9, 
+              max(data_full_summary_clean$mr_im_13_24, na.rm = TRUE) * 1.1)
+y_limits <- c(min(data_full_summary_clean$travelers_per_100k, na.rm = TRUE) * 0.9, 
+              max(data_full_summary_clean$travelers_per_100k, na.rm = TRUE) * 1.1)
+
+beeswarm_plot <- ggplot(data = data_full_summary_clean) +
+  
+  # Non-priority countries (gray)
+  geom_point(
+    data = data_full_summary_clean %>% filter(!country_name %in% priority_country_names),
+    aes(x = mr_im_13_24, y = travelers_per_100k, size = measles_per_100k),
+    color = "#afabab",
+    alpha = 0.4,
+    show.legend = FALSE
+  ) +
+  
+  # Priority countries
+  geom_point(
+    data = data_full_summary_clean %>% filter(country_name %in% priority_country_names),
+    aes(x = mr_im_13_24, y = travelers_per_100k, size = measles_per_100k, color = country_name),
+    alpha = 1,
+    show.legend = TRUE
+  ) +
+  
+  # Philippines — totally isolated
+  geom_point(
+    data = data_full_summary_clean %>% filter(country_name == "Philippines"),
+    aes(x = mr_im_13_24, y = travelers_per_100k, size = measles_per_100k, color = country_name),
+    alpha = 1,
+    stroke = 1.2,
+    show.legend = FALSE
+  ) +
+  
+  # Label for non-priority countries
+  geom_text(
+    data = data_full_summary_clean %>% filter(!country_name %in% priority_country_names),
+    aes(x = mr_im_13_24, y = travelers_per_100k, label = iso3_code),
+    color = "black",
+    size = 3,
+    vjust = -1
+  ) +
+  
+  # Label for priority countries
+  geom_text(
+    data = data_full_summary_clean %>% filter(country_name %in% priority_country_names),
+    aes(x = mr_im_13_24, y = travelers_per_100k, label = iso3_code),
+    color = "black",
+    size = 4,
+    fontface = "bold",
+    vjust = -1
+  ) +
+  
+  # Scales
+  scale_x_continuous(
+    limits = c(1, 60),
+    breaks = c(1, 10, 20, 30, 40, 50, 60),
+    labels = scales::number_format(accuracy = 1)
+  ) +
+  scale_y_log10(
+    labels = scales::comma_format(),
+    breaks = scales::trans_breaks("log10", function(x) 10^x)
+  ) +
+  scale_color_manual(
+    name = "Priority Countries",
+    values = color_pal_9,
+    breaks = sort(priority_country_names),
+    guide = guide_legend(
+      order = 2,
+      override.aes = list(size = 7)
+    )
+  ) +
+  scale_size_continuous(
+    name = "Total Number of Measles Cases per 100,000 (2019–2023)",
+    range = c(3, 20),
+    trans = "sqrt",
+    breaks = c(1, 10, 25, 50, 100, 200, 300),
+    labels = scales::comma_format()
+  ) +
+  
+  # Coordinates and labels
+  coord_cartesian(xlim = x_limits, ylim = y_limits) +
+  labs(
+    x = "Number of Measles Cases Imported to the US (2013-2024)",
+    y = "Total Travelers To and From the US per 100,000 (2019-2023)",
+    title = "Imported Measles Cases (2014-2023) vs. Travelers to/from the US per 100,000 Population\nBubble Size = Total Number of Measles Cases (2019–2023)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = 12, face = "bold"),
+    axis.title = element_text(size = 14, face = "bold"),
+    legend.title = element_text(size = 10, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.position = "right",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
+print(beeswarm_plot)
+
+# Save plot
+ggsave(
+  filename = file.path("C:/Users/tqa4/OneDrive - CDC/Summer 2022/EPMPs/DATT Visuals/Alternative2C",
+                       "R18_Alternative_2C_iso.png"),
+  width = 13, height = 8, dpi = 300, bg = "white"
+)
+
+
+# Save plot
+ggsave(
+  filename = file.path("C:/Users/tqa4/OneDrive - CDC/Summer 2022/EPMPs/DATT Visuals/Alternative_2a",
+                       "R18_Alternative_2a_corrected_trvlrs_per_100k_iso.png"),
+  width = 13, height = 8, dpi = 300, bg = "white"
+)
+
+
+
