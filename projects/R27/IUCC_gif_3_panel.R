@@ -561,9 +561,9 @@ out_map <- plot_grid(map_uk , map_isr , map_usa, nrow =1, align = "h")
 print(out_map)
 
 out_map_final <- plot_grid(out_map, legend, rel_heights = c(0.95, 0.05), ncol = 1)+ 
-  plot_annotation(title = paste("Spread of",
+  plot_annotation(title = paste0("Spread of ",
                                  emergence_group,
-                                 "Emergence as of ",
+                                 " Emergence as of ",
                                  lubridate::year(date_of_eval),
                                  "-",
                                  lubridate::month(date_of_eval, label = T),
@@ -573,7 +573,7 @@ out_map_final <- plot_grid(out_map, legend, rel_heights = c(0.95, 0.05), ncol = 
 
 
 
-ggplot2::ggsave(out_file, plot = out_map_final, dpi = 300, height = 8, width = 12, bg = "white")
+ggplot2::ggsave(out_file, plot = out_map_final, dpi = 300, height = 6, width = 9, bg = "white")
     
     cli::cli_process_done()
   }
