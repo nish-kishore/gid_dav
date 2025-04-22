@@ -64,7 +64,18 @@ ob_d <- data$ob_data %>%
 
 data1 <- ob_d %>% filter(OutBreakStatus == "active" | OutBreakStatus == "active_monitor")
 
+data2 <- ob_d %>% filter(OutBreakStatus == "active")
 
+
+ctry_d <- data1 %>%
+  group_by(place.admin.0, measurement) %>%
+  mutate(measurement = gsub(" ", "", measurement)) %>%
+  count() %>% 
+  filter(measurement == "cVDPV2")
+ reg <- ctry %>% select(WHO_REGION, ADM0_NAME)
+
+ctry_d <- left_join(ctry_d, reg, by = c("place.admin.0"="ADM0_NAME"))
+table(ctry_d$WHO_REGION)
 
 ctry_a <- data1 %>%
   group_by(place.admin.0, measurement) %>%

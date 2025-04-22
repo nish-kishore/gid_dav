@@ -49,9 +49,9 @@ ob_table <- ob_data %>%
 
 # Load in Outbreak Dataset here
 # updated as of 17 March 2025 -> pull from WHO deck or raw.data once processed by Nick. 
-
-
-ob_dataset <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_raw/outbreaks_250317.rds")
+# obs <- read_excel("C:/Users/qdz1/Downloads/outbreaks_250325.xlsx")
+ob_dataset <- sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_raw/outbreaks_250325.rds", obj = obs)
+ob_dataset <- sirfunctions::edav_io(io = "read", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_raw/outbreaks_250325.rds")
 
 
 ob_dataset <- ob_dataset %>%
@@ -81,10 +81,8 @@ obs <- ob_sum_table$ob_data %>%
 
 obs <- obs %>% filter(is.na(OutbreakNoti.Date)==T)
 
-if(nrow(obs)==0){
-sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/pv_ob_table.rds", obj = ob_sum_table)
-}else{
-cli_alert("New Outbreak in Dataset - Need new pass of the OB Notification Date to replace line 53")
-}
 
-rm(obs, ob_dataset, meta_data, ob_all, ob_data, ob_sum_table, ob_table)
+sirfunctions::edav_io(io = "write", default_dir = "GID/GIDMEA/giddatt", file_loc = "data_clean/pv_ob_table.rds", obj = ob_sum_table)
+
+
+# rm(obs, ob_dataset, meta_data, ob_all, ob_data, ob_sum_table, ob_table)
