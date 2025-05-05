@@ -1,0 +1,169 @@
+# Author: Erin Goucher
+# 2/28/25
+#Global heat map that shows number of VPD outbreaks per country
+
+## Install dependencies
+required.packages <- c("tidyverse", "AzureStor","Microsoft365R", "readxl", "janitor","scales", "devtools","dplyr","stringr")
+packages.to.install <- setdiff(required.packages, installed.packages())
+if(length(packages.to.install) >0) install.packages(packages.to.install)
+
+# GID PEB SIR Team functions - use to read data from ADLS
+
+
+library(tidyverse)
+library(readxl)
+library(AzureStor)
+library(Microsoft365R)
+library(janitor)
+library(scales)
+library(ggplot2)
+library(ggrepel)  
+library(scales)   
+library(dplyr)
+library(stringr)
+library(sf)
+
+# GID PEB SIR Team functions - use to read data from ADLS
+install.packages("devtools")
+library(devtools)
+devtools::install_github("nish-kishore/sirfunctions")
+
+# getwd()
+
+datt_task_id <- "R24"
+
+
+# Data set to read from ADLS
+data_outbreaks <- "data_clean/country_vpd_year_casedata.csv"
+data_outbreaks <- sirfunctions::edav_io(io = "read", 
+                                        default_dir = "GID/GIDMEA/giddatt", 
+                                        file_loc = data_outbreaks)
+
+ctry_shps <- "data_clean/ctry_shapes.rds"
+ctry_shps <- sirfunctions::edav_io(io = "read", 
+                                        default_dir = "GID/GIDMEA/giddatt", 
+                                        file_loc = ctry_shps)
+
+# Define the countries of interest 
+countries_of_interest <- c("Afghanistan", "Pakistan", "Nigeria", "Ethiopia", "Democratic Republic of the Congo", "Indonesia", "Philippines", "Brazil") 
+
+
+# Define the years of interest 
+years_of_interest <- c("2019", "2020", "2021", "2022", "2023") 
+
+# Filter the dataset for the years of interest
+data_outbreaks <- data_outbreaks %>%
+  filter(year %in% years_of_interest)
+
+# Filter the dataset for the years of interest
+data_outbreaks <- data_outbreaks %>%
+  filter(variable %in% "lod_count")
+
+# Summarize the value column by country
+data_outbreaks_summary <- data_outbreaks %>%
+  group_by(country_name, iso3_code) %>%
+  summarize(total_value = sum(value, na.rm = TRUE), .groups = "drop")
+
+
+
+
+
+# Merge outbreak summary with country shapes
+ctry_data <- ctry_shps %>%
+  left_join(data_outbreaks_summary, by = c("iso_a3" = "iso3_code"))
+
+# Flag priority countries
+ctry_data <- ctry_data %>%
+  mutate(gid_priority = if_else(admin %in% countries_of_interest, TRUE, FALSE))
+
+# Extract label coordinates (centroids of largest polygon)
+label_data <- ctry_data %>%
+  filter(gid_priority == TRUE) %>%
+  st_centroid(of_largest_polygon = TRUE) %>%
+  mutate(lon = st_coordinates(.)[, 1],
+         lat = st_coordinates(.)[, 2])
+
+# Create a separate label for each priority country
+label_afg <- label_data %>% filter(admin == "Afghanistan")
+label_bra <- label_data %>% filter(admin == "Brazil")
+label_cod <- label_data %>% filter(admin == "Democratic Republic of the Congo") %>%
+  mutate(admin = "DRC")  # Use "DRC" for label
+label_eth <- label_data %>% filter(admin == "Ethiopia")
+label_idn <- label_data %>% filter(admin == "Indonesia")
+label_nga <- label_data %>% filter(admin == "Nigeria")
+label_pak <- label_data %>% filter(admin == "Pakistan")
+label_phl <- label_data %>% filter(admin == "Philippines")
+
+
+# Define custom color palette
+custom_palette <- c("#f0f9e8", "#ccebc5", "#a8ddb5", "#7bccc4", "#43a2ca", "#0868ac")
+# Plot the heatmap
+ggplot() +
+  geom_sf(data = ctry_data, aes(fill = total_value), color = "white", size = 0.2) +
+  scale_fill_gradientn(colors = custom_palette,
+                       name = "Total Large/Disruptive Outbreaks",
+                       na.value = "grey90",
+                       limits = c(min(ctry_data$total_value, na.rm = TRUE),
+                                  max(ctry_data$total_value, na.rm = TRUE)),
+                       oob = squish) +
+  
+  # Red outline for priority countries
+  geom_sf(data = ctry_data %>% filter(gid_priority == TRUE),
+          fill = NA, color = "red", size = 0.8) +
+  
+  # Afghanistan (nudged up)
+  geom_text(data = label_afg,
+            aes(x = lon, y = lat, label = admin),
+            size = 3.2, color = "black", fontface = "bold",
+            nudge_y = 1.2) +
+  
+  # Brazil (nudged up)
+  geom_text(data = label_bra,
+            aes(x = lon, y = lat, label = admin),
+            size = 3.2, color = "black", fontface = "bold",
+            nudge_y = 2) +
+  
+  # DRC (label is "DRC")
+  geom_text(data = label_cod,
+            aes(x = lon, y = lat, label = admin),
+            size = 3.2, color = "black", fontface = "bold") +
+  
+  # Ethiopia (nudged up)
+  geom_text(data = label_eth,
+            aes(x = lon, y = lat, label = admin),
+            size = 3.2, color = "black", fontface = "bold",
+            nudge_y = 1.5) +
+  
+  # Indonesia
+  geom_text(data = label_idn,
+            aes(x = lon, y = lat, label = admin),
+            size = 3.2, color = "black", fontface = "bold") +
+  
+  # Nigeria (nudged up)
+  geom_text(data = label_nga,
+            aes(x = lon, y = lat, label = admin),
+            size = 3.2, color = "black", fontface = "bold",
+            nudge_y = 5) +
+  
+  # Pakistan
+  geom_text(data = label_pak,
+            aes(x = lon, y = lat, label = admin),
+            size = 3.2, color = "black", fontface = "bold") +
+  
+  # Philippines (nudged up)
+  geom_text(data = label_phl,
+            aes(x = lon, y = lat, label = admin),
+            size = 3.2, color = "black", fontface = "bold",
+            nudge_y = 1) +
+  
+  
+  # Theme and labels block — previously being skipped!
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    panel.background = element_rect(fill = "lightblue", color = NA),
+    panel.grid = element_blank()
+  ) +
+  labs(title = "Large and Disruptive VPD Outbreaks by Country (2019–2023)",
+       subtitle = "Priority countries outlined and labeled in red",
+       caption = "Source: GID PEB SIR Team")
