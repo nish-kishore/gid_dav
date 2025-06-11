@@ -4,12 +4,12 @@
 
 # load packages
 source("./reference/obx_packages_01.R", local = T)
-
+library(ggbreak)
 # Inputs 
 # Read Data 
 # Load Data
 
- raw.data <- sirfunctions::get_all_polio_data(size = "large")
+ raw.data <- sirfunctions::get_all_polio_data(size = "small")
 
 
 # Inputs 
@@ -20,7 +20,7 @@ date_end <- floor_date(raw.data$metadata$download_time, "week", week_start = 1) 
 
 # With table 
 e_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")
-fig_name <- paste("polio_epi_curve",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
+fig_name <- paste("polio_epi_curve_simple",e_w1,"_", format(today(), "%y%m%d"),".png", sep="")
 temp_path <- file.path(tempdir(), fig_name)
 sp_path <- paste("./Data Analytics Task Team/",sub_folder, "/", datt_task_id,"/", fig_name, sep ="")
 
@@ -84,59 +84,125 @@ graph_1 <- ggplot() +
 
 print(graph_1)
 
+## Add in Conchi Data 
+new_cases <- read_excel("C:/Users/qdz1/Desktop/polio_case_mod_CE.xlsx")
+cases <- new_cases %>% filter(Year >= 1988 & Year <2025) %>%
+             select(Year, all_cases) %>% 
+             mutate(Year = as.numeric(Year),
+                    b1000 = all_cases / 1000)
+
 # Larger graph (total of all AFP cases by year, 1986-2024)----------------------
 # collapse data set into aggregate number of AFP cases per year by type
-pos_all <- raw.data$pos %>%
-  filter(source == "AFP" & measurement %in% c("WILD 1", "WILD 2", "WILD 3", 
-                                              "cVDPV 1", "cVDPV 2", "cVDPV 3") 
-                 & yronset >= 1986 & yronset <= prior_year) %>%
-  group_by(yronset) %>%
-  summarize(cases=n())
+# pos_all <- raw.data$pos %>%
+#   filter(source == "AFP" & measurement %in% c("WILD 1", "WILD 2", "WILD 3", 
+#                                               "cVDPV 1", "cVDPV 2", "cVDPV 3") 
+#                  & yronset >= 1986 & yronset <= prior_year) %>%
+#   group_by(yronset) %>%
+#   summarize(cases=n())
 
-# create data frame with the historical polio case data, copied from WUENIC
-wuenic <- data.frame(yronset = seq(1986, 2000),
-                     cases = c(32846, 39683, 34617, 26104, 23053, 13274, 15304, 
-                               10500, 8666, 7043, 4070, 5186, 6347, 7141, 2971))
-
-# bind WUENIC data to POLIS which starts in 2001
-pos_all <- rbind(pos_all, wuenic)
+# # create data frame with the historical polio case data, copied from WUENIC
+# wuenic <- data.frame(yronset = seq(1986, 2000),
+#                      cases = c(32846, 39683, 34617, 26104, 23053, 13274, 15304, 
+#                                10500, 8666, 7043, 4070, 5186, 6347, 7141, 2971))
+# 
+# # bind WUENIC data to POLIS which starts in 2001
+# pos_all <- rbind(pos_all, wuenic)
+cases <- cases
 
 # make the graph
 graph_2 <- ggplot() +
-  geom_bar(data = pos_all, mapping = aes(x = yronset, y = cases), stat = "identity", fill = "purple4") +
-  geom_smooth(data = pos_all, mapping = aes(x = yronset, y = cases), color = "darkgray", se = FALSE, linetype = 7) +
-  annotate("text", x = 2019, y = 10000, label = "Africa declared\nWPV-free", 
-    color = "navy", fontface = "bold", size = 3) +
-  annotate("segment", x = 2019, xend = 2019, y = 8000, yend = 600, 
-    arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1) +
-  geom_ellipse(aes(x0 = 2022, y0 = 0, a = 3.5, b = 1500, angle = 0), 
-               color = "red3", size = 1.5, fill = NA) +
-  annotate("text", x = 2022, y = 5000, label = "Surge of\ncVDPV\noutbreaks", 
-           color = "dodgerblue2", fontface = "bold", size = 3) +
-  annotate("text", x = 2016, y = 5000, label = "tOPV/bOPV\nSwitch in\n2016", 
-           color = "dodgerblue2", fontface = "bold", size = 3) +
-  annotate("segment", x = 1998, xend = 1988, y = 12000, yend = 12000, 
-           arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1) +
-  annotate("text", x = 2003, y = 12000, label = "The Global Polio\nEradication Initiative\nis created in 1988", 
-           color = "dodgerblue2", fontface = "bold", size = 3) +
-  labs(title = "Cases of WPV and cVDPV Poliomyelitis by Year, 1986-2024",
-       x = "", 
-       y = "Total cases", 
+  geom_bar(data = cases, mapping = aes(x = Year, y = b1000), stat = "identity", fill = "purple4") +
+  # geom_smooth(data = cases, mapping = aes(x = Year, y = b100), color = "darkgray", se = FALSE, linetype = 7) +
+  scale_y_continuous(limits = c(0,400)) +
+  scale_y_cut(breaks=c(9, 90))+ 
+  scale_x_continuous(limits = c(1987, prior_year+2), breaks = seq(1988, prior_year, by = 2)) + 
+  annotate("text", x = 2019, y = 5, label = "Africa declared\nWPV-free", 
+           color = "navy", fontface = "bold", size = 4) + theme_classic() +
+  annotate("segment", x = 2019, xend = 2019, y = 4.4, yend = 0.7, 
+           arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1.5) +
+  geom_ellipse(aes(x0 = 2022, y0 = 0, a = 3.7, b = 2.1, angle = 0), 
+               color = "red3", size = 1.5, fill = NA) + 
+  annotate("text", x = 2022, y = 3.2, label = "Surge of\ncVDPV\noutbreaks", 
+           color = "dodgerblue2", fontface = "bold", size = 3.5) + 
+  annotate("text", x = 2016, y = 2, label = "tOPV/bOPV\nSwitch in\n2016", 
+           color = "dodgerblue2", fontface = "bold", size = 4) + 
+  annotate("segment", x = 2001, xend = 1988, y = 200, yend = 200, 
+           arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1.5) + 
+  annotate("text", x = 2004, y = 200, label = "The Global Polio\nEradication Initiative\nis created in 1988", 
+           color = "dodgerblue2", fontface = "bold", size = 4) + 
+  annotate("text", x = 1999.5, y = 3, label = "The Americas\ndeclared\nWPV Free", 
+           color = "dodgerblue2", fontface = "bold", size = 3.4, hjust = 0)+ 
+annotate("segment", x = 2000, xend = 2000, y = 2, yend = 0.9, 
+         arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1.5) + 
+  labs(
+       x = "Year", 
+       y = "Thousands of paralytic polio cases", 
        fill = "Number of reported cases (cVDPVs and WPVs)",
-       caption = paste0("Produced by CDC-GHC-GID-PEB \nData available through GPEI as of ", raw.data$metadata$download_time)) +
-  theme_minimal() +
-  theme(legend.position = "bottom",
-        plot.title = element_text(color = "blue2", margin = margin(t = 20, b = 10)),
-        axis.text = element_text(color = "dodgerblue2", face = "bold"),
-        axis.title.y = element_text(color = "dodgerblue2", face = "bold"),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        axis.text.x = element_text(angle = 75, hjust = 0.5, vjust = 0.5)) +
-  scale_x_continuous(limits = c(1985, prior_year+2), breaks = seq(1986, prior_year, by = 2)) +
-  scale_y_continuous(limits = c(-1600, 40000), breaks = c(0, 5000, 10000, 15000,
-                                                          20000, 25000, 30000, 35000, 40000))
+       caption = paste0("Produced by CDC-GHC-GID-PEB \nData available through GPEI as of ", raw.data$metadata$download_time)) + 
+  theme(
+    axis.title = element_text(size = 20, face = "bold"), 
+    axis.text = element_text(size = 18), 
+    plot.title = element_text(size = 14, face = "bold")) 
 
-# print(graph_2)
+  print(graph_2)
+  
+  # scale_y_continuous(name = "Total Cases (x 100 Cases)", 
+  #                    limits = c(-160, 4000), breaks = c(0, 500, 1000, 1500,
+  #                                                                           2000, 2500, 3000, 3500, 4000)) +
+                     
+
+ggsave(filename = temp_path, plot = graph_2, height = 10, width = 12, scale = 1.2, dpi = 300, bg = 'white')
+  
+  upload_to_sharepoint(
+    file_to_upload = temp_path,  # Writes to temp directory 
+    sharepoint_file_loc = sp_path,
+    site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
+    drive = "Documents")
+  
+  
+  
+
+# Option 2 - Simple graph 
+graph_3 <- ggplot() +
+    geom_bar(data = cases, mapping = aes(x = Year, y = b1000), stat = "identity", fill = "purple4") +
+    # geom_smooth(data = cases, mapping = aes(x = Year, y = b100), color = "darkgray", se = FALSE, linetype = 7) +
+    scale_y_continuous(limits = c(0,400), breaks = seq(0,400, 50)) +
+    scale_x_continuous(limits = c(1987, prior_year+2), breaks = seq(1988, prior_year, by = 2)) + 
+    labs(
+      x = "Year", 
+      y = "Thousands of paralytic polio cases", 
+      fill = "Number of reported cases (cVDPVs and WPVs)",
+      caption = paste0("Produced by CDC-GHC-GID-PEB \nData available through GPEI as of ", raw.data$metadata$download_time)) + 
+    theme_minimal() +
+    theme(
+      axis.title = element_text(size = 20, face = "bold"), 
+      axis.text = element_text(size = 18), 
+      plot.title = element_text(size = 14, face = "bold")) 
+  
+  print(graph_3) 
+
+  ggsave(filename = temp_path, plot = graph_3, height = 10, width = 12, scale = 1.2, dpi = 300, bg = 'white')
+  
+  upload_to_sharepoint(
+    file_to_upload = temp_path,  # Writes to temp directory 
+    sharepoint_file_loc = sp_path,
+    site = "https://cdc.sharepoint.com/teams/GHC_GID_Data__Strategy_Tiger_Team",
+    drive = "Documents")
+  
+  
+  
+  
+  # theme(legend.position = "bottom",
+  #       plot.title = element_text(color = "blue2", margin = margin(t = 20, b = 10)),
+  #       axis.text = element_text(color = "dodgerblue2", face = "bold"),
+  #       axis.title.y = element_text(color = "dodgerblue2", face = "bold"),
+  #       panel.grid.minor.x = element_blank(),
+  #       panel.grid.major.x = element_blank(),
+  #       axis.text.x = element_text(angle = 75, hjust = 0.5, vjust = 0.5)) +
+  # # scale_y_continuous(limits = c(-1600, 40000), breaks = c(0, 5000, 10000, 15000,
+  # #                                                         20000, 25000, 30000, 35000, 40000))
+
+print(graph_2)
 
 # combine these two together onto one plot--------------------------------------
 eradication_status_graphic <- ggdraw() +
