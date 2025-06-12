@@ -552,13 +552,13 @@ ggplot2::scale_color_manual(name = "Detections:",
 # Panel Design 
 test <- ggarrange(map_uk, map_isr, map_usa,  nrow = 1, align = "h", common.legend = T, legend = "bottom") +
 plot_annotation(title = "GFG Multiplot") &  theme(plot.title = element_text(hjust = 0.5)) 
-print(test)
+# print(test)
 
 out_map <- (map_uk | map_isr | map_usa) / legend 
-print(out_map)
+# print(out_map)
 
 out_map <- plot_grid(map_uk , map_isr , map_usa, nrow =1, align = "h") 
-print(out_map)
+# print(out_map)
 
 out_map_final <- plot_grid(out_map, legend, rel_heights = c(0.95, 0.05), ncol = 1)+ 
   plot_annotation(title = paste0("Spread of ",
@@ -573,7 +573,7 @@ out_map_final <- plot_grid(out_map, legend, rel_heights = c(0.95, 0.05), ncol = 
 
 
 
-ggplot2::ggsave(out_file, plot = out_map_final, dpi = 300, height = 6, width = 9, bg = "white")
+ggplot2::ggsave(out_file, plot = out_map_final, dpi = 300, height = 4, width = 9, bg = "white")
     
     cli::cli_process_done()
   }
