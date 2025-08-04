@@ -1,3 +1,6 @@
+#### Note - this is set for 12 months, EOC map wall is 13 months. 
+
+
 ## R2 - Update weekly
 ## Global Polio Map - need to check output and reference 
 ## Updated - 13-02-2025 
@@ -18,7 +21,7 @@ if (exists("raw.data") == TRUE){
 # Load Inputs 
 # Dates (last 12 months)
 date_end <- floor_date(raw.data$metadata$download_time, "week", week_start = 1) %m+% days(1)
-date_start <- date_end %m-% days(365)
+date_start <- floor_date(date_end %m-% months(13), "week", week_start = 7)
 # Epi Week 
 e_w <- paste0("W",as.character(epiweek(date_end)),",", sub="")
 e_w1 <- paste0("W",as.character(epiweek(date_end)), sub="")
@@ -184,3 +187,6 @@ if(uploadtosp == "yes"){
   
 
 table(pos1$source)
+
+table(pos1$source, pos1$measurement)
+table(pos1$measurement, pos1$source)

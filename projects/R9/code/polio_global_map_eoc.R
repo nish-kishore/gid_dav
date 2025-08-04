@@ -152,7 +152,7 @@ g1 <- ggplot() +
      fill = guide_legend(override.aes = list(size = 0), nrow = 1)) +
   labs(caption = paste("*paralysis onset / ES sample collection from", format(date_start, "%d %b %y"), "to", format(date_end, "%d %b %y"),"\nES: environmental surveillance; cVDPV: circulating variant poliovirus; WPV: wild poliovirus 
                        Produced by CDC-GHC-GID-PEB; Data available through GPEI as of", format(date_end, "%d %b %y"), ""), 
-       title = paste0("Overview of global WPV1 and cVDPV detections at ", as.character(year(date_end)),"-",e_w," previous 12 months*", sub=" ")) 
+       title = paste0("Overview of global WPV1 and cVDPV detections at ", as.character(year(date_end)),"-",e_w," previous 13 months*", sub=" ")) 
   
 
 # # Test print -> check what rolw is missing from the scale 
