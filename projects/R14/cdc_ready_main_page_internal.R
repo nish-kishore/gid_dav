@@ -458,7 +458,7 @@ dfs <- list("T1_PVOverall" = t1_overall_sum,
             "T2_Ctry" = t2_overall,
             "T3_Metadata" = meta)
 
-sirfunctions::edav_io(io = "write", file_loc = "Data/polio_summary_weekly.xlsx", obj = dfs)
+sirfunctions::edav_io(io = "write", default_dir  = "GID/GIDMEA/giddatt/od_polio" ,  file_loc = "polio_summary_weekly.xlsx", obj = dfs)
 
 
 # # Export
