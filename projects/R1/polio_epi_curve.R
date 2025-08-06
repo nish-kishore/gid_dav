@@ -35,7 +35,7 @@ get_sharepoint_site(
   token = NULL)
 
 # set parameters
-prior_year <- year(Sys.Date() %m-% years(1))
+prior_year <- year(Sys.Date() %m-% years(0))
 
 # load data, make sure you use the size = "large" in order to download data back to 2001
 
@@ -86,7 +86,7 @@ print(graph_1)
 
 ## Add in Conchi Data 
 new_cases <- read_excel("C:/Users/qdz1/Desktop/polio_case_mod_CE.xlsx")
-cases <- new_cases %>% filter(Year >= 1988 & Year <2025) %>%
+cases <- new_cases %>% filter(Year >= 1988 & Year <=2025) %>%
              select(Year, all_cases) %>% 
              mutate(Year = as.numeric(Year),
                     b1000 = all_cases / 1000)
@@ -114,35 +114,47 @@ graph_2 <- ggplot() +
   geom_bar(data = cases, mapping = aes(x = Year, y = b1000), stat = "identity", fill = "purple4") +
   # geom_smooth(data = cases, mapping = aes(x = Year, y = b100), color = "darkgray", se = FALSE, linetype = 7) +
   scale_y_continuous(limits = c(0,400)) +
-  scale_y_cut(breaks=c(9, 90))+ 
-  scale_x_continuous(limits = c(1987, prior_year+2), breaks = seq(1988, prior_year, by = 2)) + 
-  annotate("text", x = 2019, y = 5, label = "Africa declared\nWPV-free", 
-           color = "navy", fontface = "bold", size = 4) + theme_classic() +
-  annotate("segment", x = 2019, xend = 2019, y = 4.4, yend = 0.7, 
+  scale_y_cut(breaks=c(9, 90), space = 0.3)+ 
+  scale_x_continuous(limits = c(1987, prior_year+3), breaks = seq(1988, prior_year, by = 4)) + 
+  annotate("text", x = 2019, y = 4, label = "Africa declared\nWPV-free", 
+           color = "black", fontface = "bold", size = 3) + theme_classic() +
+  annotate("segment", x = 2019, xend = 2019, y = 3.2, yend = 0.75, 
            arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1.5) +
-  geom_ellipse(aes(x0 = 2022, y0 = 0, a = 3.7, b = 2.1, angle = 0), 
-               color = "red3", size = 1.5, fill = NA) + 
-  annotate("text", x = 2022, y = 3.2, label = "Surge of\ncVDPV\noutbreaks", 
-           color = "dodgerblue2", fontface = "bold", size = 3.5) + 
-  annotate("text", x = 2016, y = 2, label = "tOPV/bOPV\nSwitch in\n2016", 
-           color = "dodgerblue2", fontface = "bold", size = 4) + 
+  # geom_ellipse(aes(x0 = 2022, y0 = 0, a = 3.7, b = 2.1, angle = 0), 
+  #              color = "red3", size = 1.5, fill = NA) + 
+  # annotate("text", x = 2022, y = 3.2, label = "Surge of\ncVDPV\noutbreaks", 
+  #          color = "black", fontface = "bold", size = 3.5) + 
+  annotate("text", x = 2016, y = 3, label = "tOPV/bOPV\nSwitch", 
+           color = "black", fontface = "bold", size = 3) + 
+  annotate("text", x = 2016, y = 25, label = "  \n   ", 
+           color = "black", fontface = "bold", size = 4) +
+  annotate("segment", x = 2016, xend = 2016, y = 2.2, yend = 0.2, 
+           arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1.5) +
   annotate("segment", x = 2001, xend = 1988, y = 200, yend = 200, 
            arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1.5) + 
   annotate("text", x = 2004, y = 200, label = "The Global Polio\nEradication Initiative\nis created in 1988", 
-           color = "dodgerblue2", fontface = "bold", size = 4) + 
-  annotate("text", x = 1999.5, y = 3, label = "The Americas\ndeclared\nWPV Free", 
-           color = "dodgerblue2", fontface = "bold", size = 3.4, hjust = 0)+ 
-annotate("segment", x = 2000, xend = 2000, y = 2, yend = 0.9, 
-         arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1.5) + 
-  labs(
+           color = "black", fontface = "bold", size = 4) + 
+annotate("text", x = 1999.5, y = 3, label = "The Americas declared\nWPV-Free",
+         color = "black", fontface = "bold", size = 3, hjust = 0)+
+annotate("segment", x = 2000, xend = 2000, y = 2, yend = 0.9,
+         arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1.5) +
+  annotate("text", x = 2025, y = 3, label = "2025\nYear to Date", 
+           color = "black", fontface = "bold", size = 3) + 
+  annotate("segment", x = 2025, xend = 2025, y = 2.2, yend = 0.2, 
+           arrow = arrow(length = unit(0.2, "cm")), color = "red3", size = 1.5) +
+  annotate("text", x = 2025, y = 3, label = "2025\nYear to Date", 
+           color = "black", fontface = "bold", size = 3) + 
+  labs(title = "Current Status of Polio Eradication",
        x = "Year", 
+       subtitle = "Cases of WPV and cVDPV Poliomyelitis by Year, 1988-2025",
        y = "Thousands of paralytic polio cases", 
        fill = "Number of reported cases (cVDPVs and WPVs)",
-       caption = paste0("Produced by CDC-GHC-GID-PEB \nData available through GPEI as of ", raw.data$metadata$download_time)) + 
+       caption = paste0("cVDPV: circulating Variant Poliovirus, WPV: Wild Poliovirus\nData available through GPEI as of July 29, 2025\nProduced by CDC-GHC-GID-PEB")) + 
   theme(
-    axis.title = element_text(size = 20, face = "bold"), 
-    axis.text = element_text(size = 18), 
-    plot.title = element_text(size = 14, face = "bold")) 
+    axis.title = element_text(size = 28, face = "bold"), 
+    axis.text = element_text(size = 24), 
+    plot.title = element_text(size = 48, face = "bold", color = "black", hjust = 0.5),
+    plot.subtitle = element_text(size = 32, face = "bold", color = "black", hjust = 0.5))
 
   print(graph_2)
   
@@ -151,7 +163,7 @@ annotate("segment", x = 2000, xend = 2000, y = 2, yend = 0.9,
   #                                                                           2000, 2500, 3000, 3500, 4000)) +
                      
 
-ggsave(filename = temp_path, plot = graph_2, height = 10, width = 12, scale = 1.2, dpi = 300, bg = 'white')
+ggsave(filename = temp_path, plot = graph_2, height = 9, width = 16, dpi = 300,  unit = "in", bg = 'white')
   
   upload_to_sharepoint(
     file_to_upload = temp_path,  # Writes to temp directory 

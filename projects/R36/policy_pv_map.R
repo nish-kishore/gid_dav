@@ -47,7 +47,7 @@ date_start <- floor_date(date_end %m-% months(13), "month")
 
 
 # Virus types 
-o_vtype <- c("cVDPV 1", "cVDPV 2", "cVDPV 3")
+o_vtype <- c("cVDPV 1", "cVDPV 2", "cVDPV 3", "WILD 1")
 # Surveillance sources 
 s1 <- c("AFP", "ENV")
 # Endemic Countries to highlight  
@@ -63,20 +63,39 @@ data1 <- raw.data$pos %>%
                dateonset >= date_start) %>%
         distinct(epid, measurement, .keep_all =T)
 
-ctry_data <- data1 %>% 
+cvdpv_data <- data1 %>% 
                arrange(place.admin.0, dateonset) %>%
+               filter(measurement %in% c("cVDPV 1", "cVDPV 2", "cVDPV 3")) %>%
                group_by(place.admin.0) %>% 
                summarise(pv_last = last(dateonset)) %>% 
                mutate(pv_yes = case_when(
-                 pv_last >= floor_date(date_end %m-% months(7), unit = "month") ~ "6_months",
-                 TRUE ~ "12 month"))
+                 pv_last >= floor_date(date_end %m-% months(7), unit = "month") ~ "c_6_months",
+                 TRUE ~ "c_12_month"))
+
+wpv_data <- data1 %>% 
+  arrange(place.admin.0, dateonset) %>%
+  filter(measurement %in% c("WILD 1")) %>%
+  group_by(place.admin.0) %>% 
+  summarise(pv_last = last(dateonset)) %>% 
+  mutate(pv_yes = case_when(
+    pv_last >= floor_date(date_end %m-% months(7), unit = "month") ~ "w_6_months",
+    TRUE ~ "w_12_month"))
+
+ctry_data <- bind_rows(cvdpv_data, wpv_data) %>%
+                mutate(pv_yes = factor(pv_yes, levels = c("c_6_months", "w_6_months", "c_12_month", "w_12_month")))
+
+counts <- ctry_data %>% 
+            group_by(pv_yes) %>%
+            count() %>%
+            
 
 corrected.global.ctry <- corrected.global.ctry %>% 
                            mutate(eng_name = toupper(NAME_ENGL),
                                   eng_name2 = case_when(
                                     NAME_ENGL == "Côte D’Ivoire" ~ "COTE D IVOIRE",
                                     NAME_ENGL == "United Kingdom" ~ "THE UNITED KINGDOM",
-                                    NAME_ENGL == "PALESTINE " ~ "OCCUPIED PALESTINIAN TERRITORY, INCLUDING EAST JERUSALEM",
+                                    NAME_ENGL == "Palestine" ~ "OCCUPIED PALESTINIAN TERRITORY, INCLUDING EAST JERUSALEM",
+                                    NAME_ENGL == "Guyana" ~ "FRENCH GUIANA",
                                     TRUE ~ eng_name))
                                   
 
@@ -90,33 +109,42 @@ test <- anti_join(ctry_data, corrected.global.ctry,
 
 #mercator projection
 map1  <- ggplot() + 
-  geom_sf(data = corrected.global.ctry, aes(fill=pv_yes), color = "grey30", lwd = 0.5) + 
+  geom_sf(data = corrected.global.ctry, aes(fill=pv_yes), color = "grey30", lwd = 0.5, show.legend = T) + 
   coord_sf(crs = "EPSG:3857") +
-  scale_fill_manual(name = "Time since last\ncVDPV detections:", 
-                     values = c("6_months" = "#009ACD",
-                                "12 month" = "#8DEEEE"), 
-                     breaks = c("6_months", "12 month"),
-                     labels = c("<6 months", "6-12 months"),
-                     na.value = "grey90") +
-  coord_sf(xlim = c(-25, 160), ylim = c(-45, 90), expand = FALSE) + 
+  scale_fill_manual(name = "Time since last\n poliovirus detection (#):", 
+                     values = c("c_6_months" = "#009ACD",
+                                "w_6_months" = "#b22222",
+                                "c_12_month" = "#8DEEEE",
+                                "w_12_month" = "#ffa07a"), 
+                     breaks = c("c_6_months",  "w_6_months", "c_12_month", "w_12_month"),
+                     labels = c(paste0("cVDPV: <6 months (N=",counts$n[1],")"), 
+                                paste0("WPV: <6 months (N=",counts$n[2],")"),
+                                paste0("cVDPV: 6-12 months (N=",counts$n[3],")"),
+                                paste0("WPV: 6-12 months (N=0)")),
+                            na.value = "grey90", 
+                    drop = FALSE) +
+  coord_sf(xlim = c(-65, 160), ylim = c(-45, 90), expand = FALSE) + 
   theme_bw() + 
   theme(legend.position = "bottom",
         legend.title = element_text(face="bold", size = 18),
-        legend.text = element_text(size = 20),
+        legend.text = element_text(size = 14),
         axis.title=element_blank(), 
         axis.text=element_blank(), 
         axis.ticks=element_blank(),
         panel.background = element_rect(fill = "#E3EBFF"),
         legend.key = element_blank(),
         plot.title = element_markdown(hjust = 0.5, face="bold", size = 24),
-        plot.caption = element_text(size =18)) + 
-  labs(title = paste("Title here"))
+        plot.caption = element_text(size =12)) +
+  guides(fill=guide_legend(ncol=2)) +
+  labs(title = paste0("Countries with poliovirus detections in the last 12 months* (N=", nrow(ctry_data), ")"),
+       caption = paste0("*paralysis onset / ES sample collection from ", format(date_start, "%d %b %y"), " to ", format(date_end, "%d %b %y"),"\nES: environmental surveillance; cVDPV: circulating variant poliovirus; WPV: wild poliovirus
+                       Produced by CDC-GHC-GID-PEB; Data available through GPEI as of ", format(date_end, "%d %b %y"), ""))
 print(map1)
 
 # Save Locally
 if(uploadtosp == "yes"){
   
-  ggsave(filename = temp_path, height = 8, width = 8, units = "in", scale = 1.5, dpi = 300)
+  ggsave(filename = temp_path, height = 9, width = 14, units = "in",  dpi = 300,bg = 'white' )
   cli::cli_alert("Beep Beep - Image Saved to Temp Folder")
   
   upload_to_sharepoint(
